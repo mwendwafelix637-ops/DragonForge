@@ -128,3 +128,9 @@ TODO.md
 work_done.md
 CHANGELOG.md
 TECHNICAL_DOCS.md
+# Node / frontend
+node_modules/
+**/node_modules/
+frontend/client/dist/
+frontend/server/dist/
+.vite/

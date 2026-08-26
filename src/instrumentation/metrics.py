@@ -19,6 +19,15 @@ import community as community_louvain  # python-louvain
 
 logger = logging.getLogger(__name__)
 
+MIN_POWER_LAW_SAMPLES = 10
+MIN_DISTINCT_DEGREES = 4
+MIN_TAIL_SAMPLES = 50
+MIN_TAIL_FRACTION = 0.10
+MIN_TAIL_DECADES = 1.0
+MAX_KMIN_CANDIDATES = 60
+DEFAULT_POWER_LAW_BOOTSTRAP = 100
+POWER_LAW_PLAUSIBLE_P = 0.10
+
 
 @dataclass
 class StructuralMetrics:
@@ -40,7 +49,9 @@ class StructuralMetrics:
     max_degree: int = 0
     degree_assortativity: float = 0.0
     power_law_exponent: Optional[float] = None
+    power_law_k_min: Optional[float] = None
     power_law_p_value: Optional[float] = None
+    power_law_plausible: Optional[bool] = None
     
     # Clustering
     avg_clustering: float = 0.0
@@ -82,7 +93,9 @@ class StructuralMetrics:
             'max_degree': self.max_degree,
             'degree_assortativity': self.degree_assortativity,
             'power_law_exponent': self.power_law_exponent,
+            'power_law_k_min': self.power_law_k_min,
             'power_law_p_value': self.power_law_p_value,
+            'power_law_plausible': self.power_law_plausible,
             'avg_clustering': self.avg_clustering,
             'global_clustering': self.global_clustering,
             'clustering_distribution': {str(k): v for k, v in self.clustering_distribution.items()},
@@ -113,6 +126,10 @@ class MetricsComputer:
         self.compute_rich_club = self.config.get('compute_rich_club', True)
         self.modularity_resolution = self.config.get('modularity_resolution', 1.0)
         self.community_algorithm = self.config.get('community_algorithm', 'louvain')
+        self.power_law_bootstrap = self.config.get(
+            'power_law_bootstrap', DEFAULT_POWER_LAW_BOOTSTRAP
+        )
+        self.power_law_seed = self.config.get('power_law_seed', 0)
         
     def compute_all(self, 
                    graph: nx.Graph,
@@ -268,41 +285,169 @@ class MetricsComputer:
         except:
             metrics.degree_assortativity = 0.0
         
-        # Power law fit
         try:
-            metrics.power_law_exponent, metrics.power_law_p_value = self._fit_power_law(degrees)
-        except:
+            alpha, k_min, p_value = self._fit_power_law(degrees)
+            metrics.power_law_exponent = alpha
+            metrics.power_law_k_min = k_min
+            metrics.power_law_p_value = p_value
+            metrics.power_law_plausible = (
+                None if p_value is None else p_value >= POWER_LAW_PLAUSIBLE_P
+            )
+        except Exception as error:
+            logger.warning("Power-law fit failed: %s", error)
             metrics.power_law_exponent = None
+            metrics.power_law_k_min = None
             metrics.power_law_p_value = None
+            metrics.power_law_plausible = None
     
-    def _fit_power_law(self, degrees: List[float]) -> Tuple[Optional[float], Optional[float]]:
-        """Fit power law to degree distribution."""
-        # Filter positive degrees
-        deg_array = np.array([d for d in degrees if d > 0])
-        if len(deg_array) < 10:
-            return None, None
-        
-        # Use maximum likelihood estimation for power law exponent
-        # p(k) ~ k^(-alpha)
-        # alpha = 1 + n / sum(log(k/k_min))
-        k_min = deg_array.min()
-        if k_min <= 0:
-            return None, None
-            
-        n = len(deg_array)
-        alpha = 1 + n / np.sum(np.log(deg_array / k_min))
-        
-        # Kolmogorov-Smirnov test for goodness of fit
-        # Simplified: compare empirical CDF to theoretical
-        from scipy import stats as scipy_stats
-        empirical_cdf = np.arange(1, n+1) / n
-        theoretical_cdf = 1 - (deg_array / k_min) ** (-(alpha - 1))
-        ks_stat = np.max(np.abs(empirical_cdf - theoretical_cdf))
-        
-        # Approximate p-value (very rough)
-        p_value = np.exp(-2 * n * ks_stat**2) if n > 0 else 1.0
-        
-        return float(alpha), float(p_value)
+    def _fit_power_law(
+        self,
+        degrees: List[float],
+        n_bootstrap: Optional[int] = None,
+        rng: Optional[np.random.Generator] = None,
+    ) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+        """Fit a power law to the degree distribution (Clauset-Shalizi-Newman).
+
+        Returns (alpha, k_min, p_value). k_min is estimated by minimising the
+        KS distance rather than assumed, because a power law describes the tail
+        of a distribution, not the whole of it. The p-value comes from a
+        semi-parametric bootstrap and tests the null that the data ARE
+        power-law distributed, so a SMALL p-value rejects the power law.
+
+        Returns (None, None, None) when the data cannot support a fit.
+        See docs/power-law-fitting.md for why the previous implementation was
+        wrong and what each guard is for.
+        """
+        data = np.asarray([d for d in degrees if d > 0], dtype=float)
+        if data.size < MIN_POWER_LAW_SAMPLES:
+            return None, None, None
+        if np.unique(data).size < MIN_DISTINCT_DEGREES:
+            return None, None, None
+
+        alpha, k_min, ks_stat, _ = self._best_power_law_fit(data)
+        if alpha is None:
+            return None, None, None
+
+        if n_bootstrap is None:
+            n_bootstrap = self.power_law_bootstrap
+        if not n_bootstrap:
+            return float(alpha), float(k_min), None
+
+        p_value = self._bootstrap_power_law_p_value(
+            data, alpha, k_min, ks_stat, n_bootstrap, rng
+        )
+        return float(alpha), float(k_min), float(p_value)
+
+    @staticmethod
+    def _power_law_mle(tail: np.ndarray, k_min: float) -> Optional[float]:
+        """Continuous MLE for the scaling exponent of a tail above k_min."""
+        logs = np.log(tail / k_min)
+        total = float(np.sum(logs))
+        if total <= 0 or not np.isfinite(total):
+            return None
+        return 1.0 + tail.size / total
+
+    @staticmethod
+    def _power_law_ks(tail: np.ndarray, k_min: float, alpha: float) -> float:
+        """Two-sided KS distance between the tail and the fitted power law.
+
+        The tail must be sorted: the empirical CDF is a monotonic ramp, and
+        pairing it with unsorted data compares unrelated quantities.
+        """
+        n = tail.size
+        theoretical = 1.0 - (tail / k_min) ** (1.0 - alpha)
+        upper = np.arange(1, n + 1) / n
+        lower = np.arange(0, n) / n
+        return float(
+            max(
+                np.max(np.abs(upper - theoretical)),
+                np.max(np.abs(theoretical - lower)),
+            )
+        )
+
+    def _best_power_law_fit(self, data: np.ndarray):
+        """Choose k_min by minimising the KS distance over candidate values."""
+        ordered = np.sort(data)
+        candidates = np.unique(ordered)
+        if candidates.size > MAX_KMIN_CANDIDATES:
+            step = candidates.size / MAX_KMIN_CANDIDATES
+            index = np.unique((np.arange(MAX_KMIN_CANDIDATES) * step).astype(int))
+            candidates = candidates[index]
+
+        largest = ordered[-1]
+        best = (None, None, np.inf, 0)
+        for k_min in candidates:
+            if k_min <= 0:
+                continue
+            if largest / k_min < 10.0 ** MIN_TAIL_DECADES:
+                break
+            tail = ordered[ordered >= k_min]
+            if tail.size < max(MIN_TAIL_SAMPLES, MIN_TAIL_FRACTION * ordered.size):
+                break
+
+            alpha = self._power_law_mle(tail, k_min)
+            if alpha is None or alpha <= 1.0:
+                continue
+
+            ks_stat = self._power_law_ks(tail, k_min, alpha)
+            if ks_stat < best[2]:
+                best = (alpha, float(k_min), ks_stat, tail.size)
+
+        return best
+
+    def _bootstrap_power_law_p_value(
+        self,
+        data: np.ndarray,
+        alpha: float,
+        k_min: float,
+        ks_stat: float,
+        n_bootstrap: int,
+        rng: Optional[np.random.Generator] = None,
+    ) -> float:
+        """Semi-parametric bootstrap p-value (Clauset et al., section 4.1).
+
+        Each synthetic dataset keeps the observed body below k_min and draws a
+        fresh tail from the fitted power law, then is refitted from scratch --
+        including re-selecting k_min, which is what makes the comparison fair.
+        The p-value is the fraction of synthetic fits at least as bad as the
+        observed one.
+        """
+        generator = rng if rng is not None else np.random.default_rng(
+            self.power_law_seed
+        )
+        body = data[data < k_min]
+        n_total = data.size
+        tail_fraction = (n_total - body.size) / n_total
+
+        worse = 0
+        completed = 0
+        for _ in range(n_bootstrap):
+            n_tail = int(generator.binomial(n_total, tail_fraction))
+            drawn_tail = k_min * generator.uniform(size=n_tail) ** (
+                -1.0 / (alpha - 1.0)
+            )
+
+            n_body = n_total - n_tail
+            if n_body > 0 and body.size:
+                drawn_body = generator.choice(body, size=n_body, replace=True)
+                synthetic = np.concatenate([drawn_body, drawn_tail])
+            else:
+                synthetic = drawn_tail
+
+            if synthetic.size < MIN_POWER_LAW_SAMPLES:
+                continue
+
+            _, _, synthetic_ks, _ = self._best_power_law_fit(synthetic)
+            if not np.isfinite(synthetic_ks):
+                continue
+
+            completed += 1
+            if synthetic_ks >= ks_stat:
+                worse += 1
+
+        if completed == 0:
+            return 1.0
+        return worse / completed
     
     def _compute_clustering_metrics(self, graph: nx.Graph, metrics: StructuralMetrics):
         """Compute clustering coefficients."""

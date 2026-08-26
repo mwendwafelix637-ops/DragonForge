@@ -469,9 +469,11 @@ def load_permuted_mnist(task_id: int, num_tasks: int = 5) -> Tuple[Any, Any, Any
     """Load Permuted MNIST task (same classes, permuted pixels)."""
     from torchvision import datasets, transforms
     
-    # Fixed permutations per task
-    np.random.seed(task_id * 42)
-    permutation = np.random.permutation(784)
+    # Task permutations are fixed across seeds on purpose: the tasks are the
+    # experiment's constant, and only initialisation and batch order should
+    # vary. A local generator is used so this does not reset the global RNG
+    # state that seeding.set_all_seeds() established for the run.
+    permutation = np.random.default_rng(task_id * 42).permutation(784)
     
     transform = transforms.Compose([
         transforms.ToTensor(),

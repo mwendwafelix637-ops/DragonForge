@@ -134,3 +134,6 @@ node_modules/
 frontend/client/dist/
 frontend/server/dist/
 .vite/
+
+# Personal engineering notes, not part of the repository
+docs/

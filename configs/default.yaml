@@ -1,11 +1,4 @@
-# NeuroLens Default Configuration
-# Model + Experiment Configs
-
-# ============================================================
-# MODEL CONFIGURATION
-# ============================================================
 model:
-  # BDH Model Configuration
   bdh:
     model_name: "bdh-small"  # or path to local checkpoint
     vocab_size: 50257
@@ -15,15 +8,12 @@ model:
     d_ff: 2048
     max_seq_len: 1024
     dropout: 0.1
-    # BDH-specific parameters
     sparsity_target: 0.05  # target sparsity for activations
     hebbian_lr: 0.01       # Hebbian learning rate
     inhibition_strength: 1.0
-    # Checkpoint
     checkpoint_path: null  # set to path if loading pretrained
     device: "cuda"         # or "cpu", "mps"
   
-  # Transformer Baseline Configuration
   transformer:
     model_name: "transformer-baseline"
     vocab_size: 50257
@@ -36,9 +26,6 @@ model:
     checkpoint_path: null
     device: "cuda"
 
-# ============================================================
-# TRAINING CONFIGURATION
-# ============================================================
 training:
   batch_size: 32
   learning_rate: 3e-4
@@ -51,25 +38,16 @@ training:
   seed: 42
   num_workers: 4
 
-# ============================================================
-# INSTRUMENTATION CONFIGURATION
-# ============================================================
 instrumentation:
-  # Graph Extraction
   graph_extraction:
-    # Node definition: "neuron", "channel", "layer", "attention_head"
     node_type: "neuron"
-    # Edge definition: "correlation", "attention", "gradient", "hebbian"
     edge_type: "correlation"
     correlation_threshold: 0.3
     top_k_edges: null  # if set, keep only top-k edges per node
-    # Sampling
     sample_batches: 100
     sample_seq_len: 512
-    # Layers to instrument (None = all)
     target_layers: null
   
-  # Structural Metrics
   metrics:
     compute_sparsity: true
     compute_modularity: true
@@ -77,16 +55,10 @@ instrumentation:
     compute_clustering: true
     compute_path_length: true
     compute_rich_club: true
-    # Modularity resolution parameter
     modularity_resolution: 1.0
-    # Community detection algorithm
     community_algorithm: "louvain"  # "louvain", "leiden", "label_propagation"
 
-# ============================================================
-# CONTINUAL LEARNING EXPERIMENT CONFIGURATION
-# ============================================================
 continual_learning:
-  # Task sequence
   tasks:
     - name: "task_a"
       dataset: "split_mnist"
@@ -96,26 +68,18 @@ continual_learning:
       dataset: "split_mnist"
       task_id: 1
       num_classes: 5
-    # Add more tasks as needed
   
-  # Experiment parameters
   epochs_per_task: 5
   eval_frequency: 1
-  # Forgetting metrics
   compute_forgetting: true
   compute_forward_transfer: true
   compute_backward_transfer: true
-  # Replay (optional)
   replay:
     enabled: false
     buffer_size: 1000
     strategy: "random"  # "random", "herding", "reservoir"
 
-# ============================================================
-# LONG-CONTEXT REASONING EXPERIMENT CONFIGURATION
-# ============================================================
 long_context:
-  # Task configuration
   tasks:
     - name: "needle_in_haystack"
       context_lengths: [1024, 2048, 4096, 8192, 16384, 32768]
@@ -130,17 +94,12 @@ long_context:
       num_samples: 100
       num_variables: 5
   
-  # Evaluation
   eval_batch_size: 8
   generation_max_tokens: 128
   temperature: 0.0
   top_p: 1.0
 
-# ============================================================
-# VISUALIZATION CONFIGURATION
-# ============================================================
 visualization:
-  # Graph visualization
   graph_view:
     layout: "force_directed"  # "force_directed", "circular", "hierarchical"
     node_size_factor: 10
@@ -148,7 +107,6 @@ visualization:
     max_nodes_display: 500
     color_by: "community"  # "community", "degree", "layer", "activation"
   
-  # Plots
   plots:
     style: "seaborn-v0_8-whitegrid"
     dpi: 150
@@ -156,38 +114,25 @@ visualization:
     save_format: "png"  # "png", "pdf", "svg"
     color_palette: "viridis"
 
-# ============================================================
-# DASHBOARD CONFIGURATION
-# ============================================================
 dashboard:
   host: "0.0.0.0"
   port: 8501
   theme: "light"
-  # Data refresh interval (seconds)
   refresh_interval: 30
-  # Enable live updates
   live_updates: true
 
-# ============================================================
-# LOGGING & EXPERIMENT TRACKING
-# ============================================================
 logging:
   level: "INFO"
   log_dir: "logs/"
-  # Weights & Biases
   wandb:
     enabled: false
     project: "neurolens"
     entity: null
     tags: ["bdh", "instrumentation", "continual-learning", "long-context"]
-  # TensorBoard
   tensorboard:
     enabled: true
     log_dir: "runs/"
 
-# ============================================================
-# PATHS
-# ============================================================
 paths:
   data_dir: "data/"
   results_dir: "results/"

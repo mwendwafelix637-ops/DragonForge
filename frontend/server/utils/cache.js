@@ -5,13 +5,10 @@ import yaml from 'js-yaml';
 
 class FileCache {
   constructor() {
-    this.jsonCache = new Map(); // filePath -> { mtimeMs, data }
-    this.yamlCache = new Map(); // filePath -> { mtimeMs, data }
+    this.jsonCache = new Map();
+    this.yamlCache = new Map();
   }
 
-  /**
-   * Invalidate cache for a specific file path or entire cache.
-   */
   invalidate(filePath) {
     if (!filePath) {
       this.jsonCache.clear();
@@ -23,11 +20,6 @@ class FileCache {
     this.yamlCache.delete(resolved);
   }
 
-  /**
-   * Safely read and parse a JSON file asynchronously with caching.
-   * @param {string} filePath 
-   * @returns {Promise<any|null>}
-   */
   async readJson(filePath) {
     const resolved = path.resolve(filePath);
     try {
@@ -53,11 +45,6 @@ class FileCache {
     }
   }
 
-  /**
-   * Safely read and parse a YAML file asynchronously with caching.
-   * @param {string} filePath 
-   * @returns {Promise<any|null>}
-   */
   async readYaml(filePath) {
     const resolved = path.resolve(filePath);
     try {
@@ -83,12 +70,6 @@ class FileCache {
     }
   }
 
-  /**
-   * Read all JSON files in a directory that match an optional filter.
-   * @param {string} dir 
-   * @param {(filename: string) => boolean} filterFn 
-   * @returns {Promise<any[]>}
-   */
   async readJsonDir(dir, filterFn = (f) => f.endsWith('.json')) {
     const resolvedDir = path.resolve(dir);
     try {

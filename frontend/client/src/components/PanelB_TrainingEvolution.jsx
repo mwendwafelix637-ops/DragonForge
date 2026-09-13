@@ -16,7 +16,6 @@ import { ClaimBadge } from './ClaimBadge';
 import { TrendingUp, Layers, Activity, Eye, EyeOff } from 'lucide-react';
 
 export function PanelB_TrainingEvolution({ structureCheckpoints }) {
-  // Metric visibility toggles
   const [visibleMetrics, setVisibleMetrics] = useState({
     modularity: true,
     modularityControl: true,
@@ -24,10 +23,8 @@ export function PanelB_TrainingEvolution({ structureCheckpoints }) {
     clustering: true,
   });
 
-  // Extract checkpoints array safely
   const rawCheckpoints = structureCheckpoints?.checkpoints || [];
 
-  // Deterministic baseline trajectory when no checkpoints are found
   const defaultEvolution = useMemo(() => [
     { step: 0, modularity: 0.12, modularityControl: 0.11, sparsity: 0.38, clustering: 0.08 },
     { step: 1000, modularity: 0.34, modularityControl: 0.13, sparsity: 0.62, clustering: 0.19 },
@@ -37,7 +34,6 @@ export function PanelB_TrainingEvolution({ structureCheckpoints }) {
     { step: 5000, modularity: 0.65, modularityControl: 0.13, sparsity: 0.86, clustering: 0.39 },
   ], []);
 
-  // Format real checkpoints or fallback
   const chartData = useMemo(() => {
     if (rawCheckpoints.length >= 2) {
       return [...rawCheckpoints]
@@ -50,7 +46,6 @@ export function PanelB_TrainingEvolution({ structureCheckpoints }) {
           clustering: Number(cp.clustering_coefficient ?? cp.clustering ?? 0),
         }));
     } else if (rawCheckpoints.length === 1) {
-      // If only 1 checkpoint exists, build a 2-point progression from step 0 baseline to step N
       const cp = rawCheckpoints[0];
       const targetStep = cp.step || 1000;
       return [
@@ -73,7 +68,6 @@ export function PanelB_TrainingEvolution({ structureCheckpoints }) {
     setVisibleMetrics(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Metrics delta calculation
   const firstPoint = chartData[0] || {};
   const lastPoint = chartData[chartData.length - 1] || {};
   const modDelta = (lastPoint.modularity ?? 0) - (firstPoint.modularity ?? 0);

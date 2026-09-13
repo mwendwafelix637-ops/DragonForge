@@ -20,11 +20,11 @@ import {
 import { ClaimBadge } from './ClaimBadge';
 
 const COMMUNITY_COLORS = [
-  '#06B6D4', // Cyan (Community 0)
-  '#A855F7', // Purple (Community 1)
-  '#F59E0B', // Amber (Community 2)
-  '#10B981', // Emerald (Community 3)
-  '#EC4899', // Pink (Community 4)
+  '#06B6D4',
+  '#A855F7',
+  '#F59E0B',
+  '#10B981',
+  '#EC4899',
 ];
 
 export function PanelA_NetworkTopology({
@@ -45,10 +45,9 @@ export function PanelA_NetworkTopology({
   const [isPaused, setIsPaused] = useState(false);
   const [edgeThreshold, setEdgeThreshold] = useState(0.35);
   const [searchQuery, setSearchQuery] = useState('');
-  const [communityFilter, setCommunityFilter] = useState('all'); // 'all' or community id
+  const [communityFilter, setCommunityFilter] = useState('all');
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, node: null });
 
-  // Resize observer to track canvas dimensions
   useEffect(() => {
     const resizeObserver = new ResizeObserver(entries => {
       for (let entry of entries) {
@@ -65,7 +64,6 @@ export function PanelA_NetworkTopology({
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Prepare nodes and links with active threshold & community filtering
   const { nodes, links, communities, neighborMap } = useMemo(() => {
     if (!graphData?.nodes) {
       return { nodes: [], links: [], communities: [], neighborMap: new Map() };
@@ -88,17 +86,14 @@ export function PanelA_NetworkTopology({
       if (n.community !== undefined) commSet.add(n.community);
     });
 
-    // Build raw links
     const rawLinks = (graphData.edges || []).map(([source, target, weight]) => ({
       source: typeof source === 'object' ? source.id : source,
       target: typeof target === 'object' ? target.id : target,
       weight: Math.abs(weight || 0.5)
     })).filter(l => nodeIdsSet.has(l.source) && nodeIdsSet.has(l.target));
 
-    // Filter links by edgeThreshold
     const filteredLinks = rawLinks.filter(l => l.weight >= edgeThreshold);
 
-    // Build neighbor map for fast adjacency lookups
     const adjMap = new Map();
     rawNodes.forEach(n => adjMap.set(n.id, []));
     filteredLinks.forEach(l => {
@@ -114,7 +109,6 @@ export function PanelA_NetworkTopology({
     };
   }, [graphData, edgeThreshold]);
 
-  // Main D3 force graph rendering effect
   useEffect(() => {
     if (!svgRef.current || !dimensions.width || nodes.length === 0) return;
 
@@ -123,10 +117,8 @@ export function PanelA_NetworkTopology({
 
     const { width, height } = dimensions;
 
-    // Zoom container
     const g = svg.append('g').attr('class', 'main-graph-group');
 
-    // Create D3 Zoom
     const zoom = d3.zoom()
       .scaleExtent([0.2, 5])
       .on('zoom', (event) => {
@@ -136,10 +128,8 @@ export function PanelA_NetworkTopology({
     svg.call(zoom);
     zoomBehaviorRef.current = zoom;
 
-    // Initial center transform
     svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2).scale(0.85));
 
-    // Create D3 Force Simulation
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links).id(d => d.id).distance(50).strength(0.2))
       .force('charge', d3.forceManyBody().strength(-120))
@@ -153,13 +143,11 @@ export function PanelA_NetworkTopology({
       simulation.stop();
     }
 
-    // Background click to clear selection
     svg.on('click', () => {
       setSelectedNode(null);
       setTooltip({ visible: false, x: 0, y: 0, node: null });
     });
 
-    // Draw Links
     const linkGroup = g.append('g').attr('class', 'links-group');
     const link = linkGroup
       .selectAll('line')
@@ -169,7 +157,6 @@ export function PanelA_NetworkTopology({
       .attr('stroke-opacity', 0.4)
       .attr('stroke-width', d => Math.max(1, d.weight * 3));
 
-    // Draw Nodes
     const nodeGroup = g.append('g').attr('class', 'nodes-group');
     const node = nodeGroup
       .selectAll('g.node')
@@ -195,7 +182,6 @@ export function PanelA_NetworkTopology({
           })
       );
 
-    // Node Outer Glow Ring
     node.append('circle')
       .attr('class', 'glow-ring')
       .attr('r', 9)
@@ -204,7 +190,6 @@ export function PanelA_NetworkTopology({
       .attr('stroke-opacity', 0)
       .attr('stroke-width', 2);
 
-    // Node Core Circle
     node.append('circle')
       .attr('class', 'core-circle')
       .attr('r', 6)
@@ -212,7 +197,6 @@ export function PanelA_NetworkTopology({
       .attr('stroke', '#09090B')
       .attr('stroke-width', 1.5);
 
-    // Node Short Label
     node.append('text')
       .text(d => d.id.replace('neuron_', '').replace('trans_', ''))
       .attr('dy', 16)
@@ -222,7 +206,6 @@ export function PanelA_NetworkTopology({
       .attr('fill', '#A1A1AA')
       .attr('pointer-events', 'none');
 
-    // Node Hover & Click Handlers
     node
       .on('mouseenter', (event, d) => {
         setHoveredNode(d);
@@ -247,7 +230,6 @@ export function PanelA_NetworkTopology({
         setSelectedNode(d);
       });
 
-    // Simulation Tick
     simulation.on('tick', () => {
       link
         .attr('x1', d => d.source.x)
@@ -263,7 +245,6 @@ export function PanelA_NetworkTopology({
     };
   }, [nodes, links, dimensions, isPaused]);
 
-  // Highlight effects when selectedNode, hoveredNode, communityFilter, or searchQuery changes
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
@@ -273,7 +254,6 @@ export function PanelA_NetworkTopology({
       ? new Set((neighborMap.get(activeNode.id) || []).map(n => n.neighbor))
       : null;
 
-    // Update Nodes
     svg.selectAll('g.node').each(function(d) {
       const gNode = d3.select(this);
       const isMatchSearch = searchQuery
@@ -286,7 +266,6 @@ export function PanelA_NetworkTopology({
       const isNeighbor = activeNeighbors?.has(d.id);
       const isActive = isSelected || isHovered || isNeighbor;
 
-      // Dim non-matching community or search
       if (!isMatchSearch || !isMatchComm) {
         gNode.attr('opacity', 0.15);
         gNode.select('.glow-ring').attr('stroke-opacity', 0);
@@ -315,7 +294,6 @@ export function PanelA_NetworkTopology({
       }
     });
 
-    // Update Links
     svg.selectAll('.links-group line').each(function(l) {
       const line = d3.select(this);
       const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
@@ -340,7 +318,6 @@ export function PanelA_NetworkTopology({
     });
   }, [selectedNode, hoveredNode, communityFilter, searchQuery, neighborMap]);
 
-  // Zoom control helpers
   const handleZoomIn = () => {
     if (svgRef.current && zoomBehaviorRef.current) {
       d3.select(svgRef.current).transition().duration(250).call(zoomBehaviorRef.current.scaleBy, 1.3);
@@ -388,7 +365,6 @@ export function PanelA_NetworkTopology({
     }
   };
 
-  // Metrics from structure data
   const modularity = structureData?.modularity || (showControl ? 0.14 : 0.65);
   const modularityControl = structureData?.modularity_random_control || 0.13;
   const sparsity = structureData?.sparsity || (showControl ? 0.21 : 0.86);

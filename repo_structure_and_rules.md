@@ -23,11 +23,8 @@ DragonForge
 ├── GRAPH
 │   └── src/instrumentation/graph_extractor.py # Node & edge extraction from model weights/activations
 │
-├── VISUALIZATION
-│   └── src/visualization/          # Internal debug plots & graph visualizers
-│
 ├── DASHBOARD
-│   └── src/dashboard/              # Web application / interactive dashboard (Streamlit/Gradio)
+│   └── frontend/                   # React client and Express results server
 │
 ├── TRAINING
 │   └── scripts/                    # Training and measurement execution scripts

@@ -7,7 +7,6 @@ export default function continualRoutes(resultsDir) {
   const continualDir = path.join(resultsDir, 'continual');
   const resultPath = path.join(continualDir, 'result.json');
 
-  // GET /api/continual - return continual learning results
   router.get('/', async (req, res, next) => {
     try {
       const data = await fileCache.readJson(resultPath);
@@ -21,7 +20,6 @@ export default function continualRoutes(resultsDir) {
     }
   });
 
-  // GET /api/continual/bdh - return BDH-specific results
   router.get('/bdh', async (req, res, next) => {
     try {
       const bdhPath = path.join(continualDir, 'bdh_result.json');
@@ -31,7 +29,6 @@ export default function continualRoutes(resultsDir) {
         return res.json(bdhData);
       }
 
-      // Try to extract from combined result
       const data = await fileCache.readJson(resultPath);
       if (data !== null) {
         return res.json({
@@ -50,7 +47,6 @@ export default function continualRoutes(resultsDir) {
     }
   });
 
-  // GET /api/continual/transformer - return Transformer baseline results
   router.get('/transformer', async (req, res, next) => {
     try {
       const transPath = path.join(continualDir, 'transformer_result.json');

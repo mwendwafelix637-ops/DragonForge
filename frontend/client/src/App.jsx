@@ -22,7 +22,6 @@ export default function App() {
   const [showControl, setShowControl] = useState(false);
   const [activeTab, setActiveTab] = useState('inspect');
 
-  // Load data using custom hooks
   const { data: checkpoint, loading: latestLoading, error: latestError, refetch: refetchLatest } = useLatestStructureCheckpoint();
   const { data: checkpointsData, loading: checkpointsLoading, error: checkpointsError, refetch: refetchCheckpoints } = useStructureCheckpoints();
   const { data: bdhGraph, loading: graphLoading, error: graphError, refetch: refetchBdhGraph } = useStructureGraph('bdh');

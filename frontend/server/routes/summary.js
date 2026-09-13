@@ -6,7 +6,6 @@ export default function summaryRoutes(resultsDir) {
   const router = express.Router();
   const summaryPath = path.join(resultsDir, 'summary.json');
 
-  // GET /api/summary - return summary
   router.get('/', async (req, res, next) => {
     try {
       const data = await fileCache.readJson(summaryPath);
@@ -20,7 +19,6 @@ export default function summaryRoutes(resultsDir) {
     }
   });
 
-  // GET /api/summary/headline - return just the headline
   router.get('/headline', async (req, res, next) => {
     try {
       const data = await fileCache.readJson(summaryPath);

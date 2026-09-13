@@ -1,12 +1,5 @@
-"""
-Extract and Measure Structural Properties
-
-Script to run structural instrumentation on trained models.
-Extracts interaction graphs and computes structural metrics.
-"""
-
+import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 import argparse
 import logging
@@ -17,9 +10,9 @@ import json
 from src.models.bdh_loader import create_bdh_model
 from src.models.transformer_baseline import create_transformer_model
 from src.instrumentation.graph_extractor import (
-    GraphExtractor, GraphConfig, NodeType, EdgeType, extract_interaction_graph
+    GraphExtractor, GraphConfig, NodeType, EdgeType
 )
-from src.instrumentation.metrics import MetricsComputer, compute_structural_metrics
+from src.instrumentation.metrics import MetricsComputer
 from src.instrumentation.checkpoint_utils import create_checkpoint_manager
 from src.experiments.long_context import LongContextDataset
 
@@ -28,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 def load_model(model_type: str, config, checkpoint_path: str, device: torch.device):
-    """Load model from checkpoint."""
     if model_type == "bdh":
         model = create_bdh_model(config.model.bdh, checkpoint_path)
     elif model_type == "transformer":
@@ -43,7 +35,6 @@ def load_model(model_type: str, config, checkpoint_path: str, device: torch.devi
 
 
 def create_instrumentation_dataloader(config, batch_size: int = 4):
-    """Create dataloader for instrumentation."""
     dataset = LongContextDataset(
         task_type="needle_in_haystack",
         context_lengths=[config.instrumentation.graph_extraction.sample_seq_len],
@@ -54,22 +45,17 @@ def create_instrumentation_dataloader(config, batch_size: int = 4):
 
 
 def extract_and_measure(model, dataloader, device, model_type: str, graph_config: GraphConfig):
-    """Extract graph and compute metrics."""
     logger.info(f"Extracting interaction graph for {model_type}...")
     
-    # Extract graph
     extractor = GraphExtractor(graph_config)
     graph = extractor.extract_from_model(model, dataloader, device, model_type)
     
     logger.info(f"Graph extracted: {len(graph.nodes)} nodes, {len(graph.edges)} edges")
     
-    # Get activations for activation sparsity
     activations = get_activations(model, dataloader, device)
     
-    # Get model weights for weight sparsity
     weights = dict(model.named_parameters())
     
-    # Compute metrics
     logger.info("Computing structural metrics...")
     metrics_config = {
         'compute_modularity': True,
@@ -93,7 +79,6 @@ def extract_and_measure(model, dataloader, device, model_type: str, graph_config
 
 
 def get_activations(model, dataloader, device, max_batches: int = 10):
-    """Get activations from model."""
     model.eval()
     activations = {}
     
@@ -122,27 +107,22 @@ def get_activations(model, dataloader, device, max_batches: int = 10):
 
 
 def save_results(graph, metrics, model_type: str, output_dir: Path, checkpoint_manager):
-    """Save graph and metrics."""
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Save graph
     graph_path = output_dir / f"{model_type}_interaction_graph.json"
     graph.save(str(graph_path))
     logger.info(f"Saved graph to {graph_path}")
     
-    # Save metrics
     metrics_path = output_dir / f"{model_type}_structural_metrics.json"
     with open(metrics_path, 'w') as f:
         json.dump(metrics.to_dict(), f, indent=2, default=str)
     logger.info(f"Saved metrics to {metrics_path}")
     
-    # Also save via checkpoint manager
     checkpoint_manager.save_graph(graph, "instrumentation", model_type)
     checkpoint_manager.save_metrics(metrics, "instrumentation", model_type)
 
 
 def print_metrics_summary(metrics, model_type: str):
-    """Print metrics summary."""
     print(f"\n{'='*50}")
     print(f"{model_type.upper()} Structural Metrics Summary")
     print(f"{'='*50}")
@@ -181,10 +161,8 @@ def main():
     parser.add_argument("--sample-seq-len", type=int, default=512)
     args = parser.parse_args()
     
-    # Load config
     config = OmegaConf.load(args.config)
     
-    # Override with command line args
     config.training.device = args.device
     config.model.bdh.device = args.device
     config.model.transformer.device = args.device
@@ -198,7 +176,6 @@ def main():
     device = torch.device(args.device)
     logger.info(f"Running on {device}")
     
-    # Create graph config
     graph_config = GraphConfig(
         node_type=NodeType(args.node_type),
         edge_type=EdgeType(args.edge_type),
@@ -209,15 +186,12 @@ def main():
         target_layers=None,
     )
     
-    # Create dataloader
     dataloader = create_instrumentation_dataloader(config)
     
-    # Checkpoint manager
     checkpoint_manager = create_checkpoint_manager(config)
     
     output_dir = Path(args.output_dir)
     
-    # Process BDH
     if args.model_type in ["bdh", "both"]:
         if args.bdh_checkpoint:
             bdh_model = load_model("bdh", config, args.bdh_checkpoint, device)
@@ -232,7 +206,6 @@ def main():
         save_results(bdh_graph, bdh_metrics, "bdh", output_dir, checkpoint_manager)
         print_metrics_summary(bdh_metrics, "bdh")
     
-    # Process Transformer
     if args.model_type in ["transformer", "both"]:
         if args.transformer_checkpoint:
             trans_model = load_model("transformer", config, args.transformer_checkpoint, device)
@@ -247,7 +220,6 @@ def main():
         save_results(trans_graph, trans_metrics, "transformer", output_dir, checkpoint_manager)
         print_metrics_summary(trans_metrics, "transformer")
     
-    # Compare if both
     if args.model_type == "both" and 'bdh_metrics' in locals() and 'trans_metrics' in locals():
         print("\n" + "="*50)
         print("COMPARISON: BDH vs Transformer")

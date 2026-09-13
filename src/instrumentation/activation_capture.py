@@ -1,11 +1,3 @@
-"""
-Activation capture utilities for the official Pathway BDH implementation.
-
-This module is intentionally separate from the upstream `bdh/` repository.
-It captures the internal sparse activations produced by BDH without
-reimplementing or modifying the model architecture.
-"""
-
 from __future__ import annotations
 
 from typing import Dict, Iterable, Optional
@@ -20,31 +12,6 @@ def capture_activations(
     input_ids: torch.Tensor,
     layers: Optional[Iterable[int]] = None,
 ) -> Dict[str, torch.Tensor]:
-    """
-    Run the official BDH model and capture x_sparse activations.
-
-    Args:
-        model:
-            An instance of the official Pathway BDH model.
-
-        input_ids:
-            Integer token IDs with shape [batch_size, sequence_length].
-
-        layers:
-            Optional iterable of layer indices to capture.
-            If None, all layers are captured.
-
-    Returns:
-        Dictionary mapping layer names such as "layer_0" to activation
-        tensors with shape:
-
-            [batch_size, n_heads, sequence_length, latent_dim]
-
-    Notes:
-        The activations captured here are the ReLU outputs (`x_sparse`)
-        inside the official BDH implementation.
-    """
-
     if input_ids.ndim != 2:
         raise ValueError(
             f"input_ids must have shape [B, T], got {tuple(input_ids.shape)}"
@@ -55,10 +22,8 @@ def capture_activations(
 
     requested_layers = None if layers is None else set(layers)
 
-    # The current instrumentation hook in bdh.py stores all layer activations.
     model.capture_activations = True
 
-    # Clear stale activations from a previous forward pass.
     if hasattr(model, "activation_cache"):
         model.activation_cache.clear()
 
@@ -104,20 +69,6 @@ def capture_activations(
 def activation_statistics(
     activations: Dict[str, torch.Tensor],
 ) -> Dict[str, Dict[str, float]]:
-    """
-    Calculate basic statistics for captured BDH activations.
-
-    Returns, for every layer:
-
-        - total_activations
-        - zero_activations
-        - active_activations
-        - sparsity
-        - activity
-        - mean_activation
-        - max_activation
-    """
-
     statistics = {}
 
     for layer_name, activation in activations.items():

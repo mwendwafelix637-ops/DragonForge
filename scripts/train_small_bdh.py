@@ -1,9 +1,3 @@
-"""
-Train Small BDH Model
-
-Script to train a small BDH model for NeuroLens experiments.
-"""
-
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -20,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def create_synthetic_dataloader(config, batch_size: int = 32, num_batches: int = 1000):
-    """Create synthetic dataloader for training."""
     vocab_size = config.vocab_size
     max_seq_len = config.max_seq_len
     
@@ -34,9 +27,7 @@ def create_synthetic_dataloader(config, batch_size: int = 32, num_batches: int =
             return self.num_samples
         
         def __getitem__(self, idx):
-            # Generate random sequence
             input_ids = torch.randint(0, self.vocab_size, (self.seq_len,))
-            # For language modeling, labels are shifted input_ids
             labels = input_ids.clone()
             return {'input_ids': input_ids, 'labels': labels}
     
@@ -46,7 +37,6 @@ def create_synthetic_dataloader(config, batch_size: int = 32, num_batches: int =
 
 def train_model(model, dataloader, optimizer, criterion, device, epochs: int, 
                 checkpoint_manager, model_type: str, config, training_config):
-    """Train the model."""
     model.train()
     
     for epoch in range(epochs):
@@ -62,7 +52,6 @@ def train_model(model, dataloader, optimizer, criterion, device, epochs: int,
             outputs = model(input_ids)
             logits = outputs['logits']
             
-            # Reshape for cross entropy: [batch*seq, vocab]
             loss = criterion(logits.view(-1, logits.size(-1)), labels.view(-1))
             
             loss.backward()
@@ -78,7 +67,6 @@ def train_model(model, dataloader, optimizer, criterion, device, epochs: int,
         avg_loss = total_loss / max(num_batches, 1)
         logger.info(f"Epoch {epoch+1}/{epochs} completed. Average Loss: {avg_loss:.4f}")
         
-        # Save checkpoint
         checkpoint_manager.save_model_checkpoint(
             model=model,
             optimizer=optimizer,
@@ -106,10 +94,8 @@ def main():
     parser.add_argument("--output-dir", type=str, default="checkpoints/", help="Output directory")
     args = parser.parse_args()
     
-    # Load config
     config = OmegaConf.load(args.config)
     
-    # Override with command line args
     config.training.batch_size = args.batch_size
     config.training.learning_rate = args.lr
     config.training.max_epochs = args.epochs
@@ -120,18 +106,15 @@ def main():
     device = torch.device(args.device)
     logger.info(f"Training on {device}")
     
-    # Create model
     logger.info("Creating BDH model...")
     model = create_bdh_model(config.model.bdh)
     model = model.to(device)
     
     logger.info(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
     
-    # Create dataloader
     logger.info("Creating dataloader...")
     dataloader = create_synthetic_dataloader(config.model.bdh, args.batch_size)
     
-    # Optimizer and criterion
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=args.lr,
@@ -139,10 +122,8 @@ def main():
     )
     criterion = nn.CrossEntropyLoss()
     
-    # Checkpoint manager
     checkpoint_manager = create_checkpoint_manager(config)
     
-    # Train
     logger.info("Starting training...")
     model = train_model(
         model=model,
@@ -157,7 +138,6 @@ def main():
         training_config=config.training
     )
     
-    # Save final model
     final_path = Path(args.output_dir) / "models" / "bdh_final.pt"
     final_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({

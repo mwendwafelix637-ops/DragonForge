@@ -4,7 +4,6 @@ import { fileCache } from '../utils/cache.js';
 export default function configRoutes(configPath) {
   const router = express.Router();
 
-  // GET /api/config - return full config
   router.get('/', async (req, res, next) => {
     try {
       const config = await fileCache.readYaml(configPath);
@@ -18,7 +17,6 @@ export default function configRoutes(configPath) {
     }
   });
 
-  // GET /api/config/model - return model config for display
   router.get('/model', async (req, res, next) => {
     try {
       const config = await fileCache.readYaml(configPath);
@@ -35,7 +33,6 @@ export default function configRoutes(configPath) {
     }
   });
 
-  // GET /api/config/instrumentation - return instrumentation config
   router.get('/instrumentation', async (req, res, next) => {
     try {
       const config = await fileCache.readYaml(configPath);

@@ -51,11 +51,8 @@ DragonForge
 ├── GRAPH
 │   └── src/instrumentation/graph_extractor.py # Graph extractor implementation
 │
-├── VISUALIZATION
-│   └── src/visualization/          # Visualization components & plots
-│
 ├── DASHBOARD
-│   └── src/dashboard/              # Interactive dashboard application
+│   └── frontend/                   # React client and Express results server
 │
 ├── TRAINING
 │   └── scripts/                    # Training and experiment runner scripts
@@ -82,7 +79,8 @@ python -m src.experiments.continual_learning
 python -m src.experiments.long_context
 
 # 4. Launch dashboard
-streamlit run src/dashboard/app.py
+cd frontend/server && npm start      # results API on :3001
+cd frontend/client && npm run dev    # dashboard on :5173
 ```
 
 ## Proof

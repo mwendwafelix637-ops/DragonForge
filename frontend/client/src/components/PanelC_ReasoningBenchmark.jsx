@@ -3,7 +3,6 @@ import { ClaimBadge } from './ClaimBadge';
 export function PanelC_ReasoningBenchmark({ reasoningData, reasoningComparison }) {
   const hasData = reasoningData && Object.keys(reasoningData).length > 0;
   
-  // Default comparison data matching the design spec
   const defaultComparison = [
     {
       model: 'BDH (Small)',

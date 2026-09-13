@@ -4,7 +4,6 @@ import { ArrowRight, Minus, AlertTriangle } from 'lucide-react';
 export function PanelD_ContinualLearning({ continualData }) {
   const hasData = continualData && Object.keys(continualData).length > 0;
   
-  // Default data matching design spec
   const defaultData = {
     task_a_before: 0.81,
     task_a_after: 0.73,

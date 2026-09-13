@@ -1,13 +1,3 @@
-"""
-Run All Experiments
-
-Orchestrates the complete NeuroLens experimental pipeline:
-1. Structural instrumentation (graph extraction + metrics)
-2. Continual learning experiments
-3. Long-context reasoning experiments
-4. Comparison and analysis
-"""
-
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -24,10 +14,10 @@ from ..models.bdh_loader import create_bdh_model, BDHLoader
 from ..models.transformer_baseline import create_transformer_model, TransformerLoader
 from ..instrumentation.graph_extractor import (
     GraphExtractor, GraphConfig, NodeType, EdgeType, 
-    InteractionGraph, extract_interaction_graph
+    InteractionGraph
 )
 from ..instrumentation.metrics import (
-    MetricsComputer, StructuralMetrics, compute_structural_metrics, compare_models
+    MetricsComputer, StructuralMetrics, compare_models
 )
 from ..instrumentation.checkpoint_utils import (
     CheckpointManager, ExperimentTracker, create_checkpoint_manager, create_experiment_tracker
@@ -45,8 +35,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ExperimentConfig:
-    """Configuration for the full experiment pipeline."""
-    # Model configs
     bdh_config: DictConfig
     transformer_config: DictConfig
     training_config: DictConfig
@@ -56,7 +44,6 @@ class ExperimentConfig:
     paths: DictConfig
     logging_config: DictConfig
     
-    # Experiment control
     run_instrumentation: bool = True
     run_continual_learning: bool = True
     run_long_context: bool = True
@@ -67,31 +54,25 @@ class ExperimentConfig:
 
 @dataclass
 class FullExperimentResults:
-    """Complete results from all experiments."""
-    # Structural metrics
     bdh_structural_metrics: Optional[StructuralMetrics] = None
     transformer_structural_metrics: Optional[StructuralMetrics] = None
     structural_comparison: Optional[Dict] = None
     bdh_graph: Optional[InteractionGraph] = None
     transformer_graph: Optional[InteractionGraph] = None
     
-    # Continual learning
     bdh_continual_results: Optional[ContinualLearningResults] = None
     transformer_continual_results: Optional[ContinualLearningResults] = None
     continual_comparison: Optional[Dict] = None
     
-    # Long context
     bdh_long_context_results: Optional[LongContextResults] = None
     transformer_long_context_results: Optional[LongContextResults] = None
     long_context_comparison: Optional[Dict] = None
     
-    # Metadata
     config: Optional[Dict] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     git_commit: Optional[str] = None
     
     def to_dict(self) -> Dict:
-        """Serialize to dictionary."""
         result = {
             'timestamp': self.timestamp,
             'git_commit': self.git_commit,
@@ -124,17 +105,12 @@ class FullExperimentResults:
         return result
     
     def save(self, path: str):
-        """Save results to JSON file."""
         with open(path, 'w') as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
         logger.info(f"Saved full experiment results to {path}")
 
 
 class ExperimentRunner:
-    """
-    Main orchestrator for NeuroLens experiments.
-    """
-    
     def __init__(self, config: ExperimentConfig):
         self.config = config
         self.device = torch.device(config.training_config.get('device', 'cuda'))
@@ -152,7 +128,6 @@ class ExperimentRunner:
             }), resolve=True
         )
         
-        # Initialize managers
         self.checkpoint_manager = create_checkpoint_manager(
             OmegaConf.create({'paths': config.paths})
         )
@@ -160,11 +135,9 @@ class ExperimentRunner:
             OmegaConf.create({'paths': config.paths})
         )
         
-        # Setup logging
         self._setup_logging()
     
     def _setup_logging(self):
-        """Setup logging configuration."""
         log_level = self.config.logging_config.get('level', 'INFO')
         log_dir = Path(self.config.logging_config.get('log_dir', 'logs/'))
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -179,41 +152,33 @@ class ExperimentRunner:
         )
     
     def run_all(self) -> FullExperimentResults:
-        """Run the complete experimental pipeline."""
         logger.info("=" * 60)
         logger.info("Starting NeuroLens Experiment Pipeline")
         logger.info("=" * 60)
         
-        # Load models
         logger.info("\n[1/5] Loading models...")
         bdh_model = self._load_bdh_model()
         transformer_model = self._load_transformer_model()
         
-        # Create dataloaders
         logger.info("\n[2/5] Preparing dataloaders...")
         dataloader = self._create_instrumentation_dataloader()
         
-        # Run structural instrumentation
         if self.config.run_instrumentation:
             logger.info("\n[3/5] Running structural instrumentation...")
             self._run_instrumentation(bdh_model, transformer_model, dataloader)
         
-        # Run continual learning
         if self.config.run_continual_learning:
             logger.info("\n[4/5] Running continual learning experiments...")
             self._run_continual_learning(bdh_model, transformer_model)
         
-        # Run long-context reasoning
         if self.config.run_long_context:
             logger.info("\n[5/5] Running long-context reasoning experiments...")
             self._run_long_context(bdh_model, transformer_model)
         
-        # Compare models
         if self.config.compare_models:
             logger.info("\n[+] Comparing models...")
             self._compare_models()
         
-        # Save results
         self._save_results()
         
         logger.info("\n" + "=" * 60)
@@ -223,7 +188,6 @@ class ExperimentRunner:
         return self.results
     
     def _load_bdh_model(self) -> nn.Module:
-        """Load BDH model."""
         checkpoint_path = self.config.bdh_config.get('checkpoint_path')
         model = create_bdh_model(self.config.bdh_config, checkpoint_path)
         model = model.to(self.device)
@@ -231,7 +195,6 @@ class ExperimentRunner:
         return model
     
     def _load_transformer_model(self) -> nn.Module:
-        """Load Transformer baseline model."""
         checkpoint_path = self.config.transformer_config.get('checkpoint_path')
         model = create_transformer_model(self.config.transformer_config, checkpoint_path)
         model = model.to(self.device)
@@ -239,8 +202,6 @@ class ExperimentRunner:
         return model
     
     def _create_instrumentation_dataloader(self) -> DataLoader:
-        """Create dataloader for instrumentation."""
-        # Use a simple synthetic dataset for instrumentation
         from ..experiments.long_context import LongContextDataset
         
         dataset = LongContextDataset(
@@ -260,9 +221,6 @@ class ExperimentRunner:
                             bdh_model: nn.Module,
                             transformer_model: nn.Module,
                             dataloader: DataLoader):
-        """Run structural instrumentation on both models."""
-        
-        # Create graph extractor config
         graph_config = GraphConfig(
             node_type=NodeType(self.config.instrumentation_config.graph_extraction.node_type),
             edge_type=EdgeType(self.config.instrumentation_config.graph_extraction.edge_type),
@@ -273,21 +231,18 @@ class ExperimentRunner:
             target_layers=self.config.instrumentation_config.graph_extraction.target_layers,
         )
         
-        # Extract BDH graph
         logger.info("Extracting BDH interaction graph...")
         bdh_extractor = GraphExtractor(graph_config)
         self.results.bdh_graph = bdh_extractor.extract_from_model(
             bdh_model, dataloader, self.device, model_type="bdh"
         )
         
-        # Extract Transformer graph
         logger.info("Extracting Transformer interaction graph...")
         transformer_extractor = GraphExtractor(graph_config)
         self.results.transformer_graph = transformer_extractor.extract_from_model(
             transformer_model, dataloader, self.device, model_type="transformer"
         )
         
-        # Compute metrics
         logger.info("Computing structural metrics...")
         metrics_config = {
             'compute_modularity': self.config.instrumentation_config.metrics.compute_modularity,
@@ -301,11 +256,9 @@ class ExperimentRunner:
         
         metrics_computer = MetricsComputer(metrics_config)
         
-        # Get activations for activation sparsity
         bdh_activations = self._get_activations_for_metrics(bdh_model, dataloader)
         transformer_activations = self._get_activations_for_metrics(transformer_model, dataloader)
         
-        # Get model weights for weight sparsity
         bdh_weights = dict(bdh_model.named_parameters())
         transformer_weights = dict(transformer_model.named_parameters())
         
@@ -323,13 +276,11 @@ class ExperimentRunner:
             model_weights=transformer_weights,
         )
         
-        # Compare
         self.results.structural_comparison = compare_models(
             self.results.bdh_structural_metrics,
             self.results.transformer_structural_metrics
         )
         
-        # Save graphs and metrics
         self.checkpoint_manager.save_graph(
             self.results.bdh_graph, "instrumentation", "bdh"
         )
@@ -346,13 +297,12 @@ class ExperimentRunner:
         self._log_structural_results()
     
     def _get_activations_for_metrics(self, model: nn.Module, dataloader: DataLoader) -> Dict[str, np.ndarray]:
-        """Get activations for metric computation."""
         model.eval()
         activations = {}
         
         with torch.no_grad():
             for batch_idx, batch in enumerate(dataloader):
-                if batch_idx >= 10:  # Just a few batches
+                if batch_idx >= 10:
                     break
                     
                 if isinstance(batch, dict):
@@ -376,12 +326,8 @@ class ExperimentRunner:
     def _run_continual_learning(self, 
                                bdh_model: nn.Module,
                                transformer_model: nn.Module):
-        """Run continual learning experiments."""
-        
-        # Setup tasks from config
         tasks_config = self.config.continual_learning_config.tasks
         
-        # Dataset loader
         def dataset_loader(dataset_name: str, task_id: int):
             if dataset_name == "split_mnist":
                 return load_split_mnist(task_id)
@@ -392,7 +338,6 @@ class ExperimentRunner:
             else:
                 raise ValueError(f"Unknown dataset: {dataset_name}")
         
-        # Optimizer factory
         def optimizer_fn(model):
             return torch.optim.AdamW(
                 model.parameters(),
@@ -400,9 +345,7 @@ class ExperimentRunner:
                 weight_decay=self.config.training_config.weight_decay
             )
         
-        # Run on BDH
         logger.info("Running continual learning on BDH...")
-        # Create fresh copy for fair comparison
         bdh_model_cl = self._load_bdh_model()
         cl_exp = ContinualLearningExperiment(self.config.continual_learning_config)
         cl_exp.setup_tasks(tasks_config, dataset_loader)
@@ -418,13 +361,11 @@ class ExperimentRunner:
             bdh_model_cl, optimizer_fn, replay_buffer=replay_buffer
         )
         
-        # Save BDH results
         self.checkpoint_manager.save_experiment_results(
             self.results.bdh_continual_results.to_dict(), 
             "continual_learning", "bdh"
         )
         
-        # Run on Transformer
         logger.info("Running continual learning on Transformer...")
         transformer_model_cl = self._load_transformer_model()
         cl_exp = ContinualLearningExperiment(self.config.continual_learning_config)
@@ -441,13 +382,11 @@ class ExperimentRunner:
             transformer_model_cl, optimizer_fn, replay_buffer=replay_buffer
         )
         
-        # Save Transformer results
         self.checkpoint_manager.save_experiment_results(
             self.results.transformer_continual_results.to_dict(),
             "continual_learning", "transformer"
         )
         
-        # Compare
         self.results.continual_comparison = self._compare_continual_results(
             self.results.bdh_continual_results,
             self.results.transformer_continual_results
@@ -458,11 +397,8 @@ class ExperimentRunner:
     def _run_long_context(self,
                          bdh_model: nn.Module,
                          transformer_model: nn.Module):
-        """Run long-context reasoning experiments."""
-        
         tasks_config = self.config.long_context_config.tasks
         
-        # Load tokenizer
         try:
             from transformers import GPT2TokenizerFast
             tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
@@ -471,7 +407,6 @@ class ExperimentRunner:
             logger.warning("transformers not installed, using basic tokenizer")
             tokenizer = None
         
-        # Run on BDH
         logger.info("Running long-context evaluation on BDH...")
         self.results.bdh_long_context_results = evaluate_long_context(
             bdh_model, tokenizer, tasks_config, self.config.long_context_config
@@ -482,7 +417,6 @@ class ExperimentRunner:
             "long_context", "bdh"
         )
         
-        # Run on Transformer
         logger.info("Running long-context evaluation on Transformer...")
         self.results.transformer_long_context_results = evaluate_long_context(
             transformer_model, tokenizer, tasks_config, self.config.long_context_config
@@ -493,7 +427,6 @@ class ExperimentRunner:
             "long_context", "transformer"
         )
         
-        # Compare
         self.results.long_context_comparison = self._compare_long_context_results(
             self.results.bdh_long_context_results,
             self.results.transformer_long_context_results
@@ -504,7 +437,6 @@ class ExperimentRunner:
     def _compare_continual_results(self,
                                   bdh_results: ContinualLearningResults,
                                   transformer_results: ContinualLearningResults) -> Dict:
-        """Compare continual learning results."""
         return {
             'avg_accuracy': {
                 'bdh': bdh_results.avg_accuracy,
@@ -535,7 +467,6 @@ class ExperimentRunner:
     def _compare_long_context_results(self,
                                      bdh_results: LongContextResults,
                                      transformer_results: LongContextResults) -> Dict:
-        """Compare long-context results."""
         return {
             'avg_accuracy': {
                 'bdh': bdh_results.avg_accuracy,
@@ -560,10 +491,8 @@ class ExperimentRunner:
         }
     
     def _compare_models(self):
-        """Overall model comparison."""
         logger.info("\n=== OVERALL MODEL COMPARISON ===")
         
-        # Structural
         if self.results.structural_comparison:
             logger.info("\n--- Structural Metrics ---")
             for key, val in self.results.structural_comparison.items():
@@ -571,7 +500,6 @@ class ExperimentRunner:
                     diff = val['difference']
                     logger.info(f"  {key}: BDH={val['bdh']:.4f}, Transformer={val['transformer']:.4f}, Diff={diff:+.4f}")
         
-        # Continual Learning
         if self.results.continual_comparison:
             logger.info("\n--- Continual Learning ---")
             for key, val in self.results.continual_comparison.items():
@@ -579,7 +507,6 @@ class ExperimentRunner:
                     diff = val['difference']
                     logger.info(f"  {key}: BDH={val['bdh']:.4f}, Transformer={val['transformer']:.4f}, Diff={diff:+.4f}")
         
-        # Long Context
         if self.results.long_context_comparison:
             logger.info("\n--- Long-Context Reasoning ---")
             for key, val in self.results.long_context_comparison.items():
@@ -588,7 +515,6 @@ class ExperimentRunner:
                     logger.info(f"  {key}: BDH={val['bdh']:.4f}, Transformer={val['transformer']:.4f}, Diff={diff:+.4f}")
     
     def _log_structural_results(self):
-        """Log structural instrumentation results."""
         if self.results.bdh_structural_metrics:
             m = self.results.bdh_structural_metrics
             logger.info("\nBDH Structural Metrics:")
@@ -612,7 +538,6 @@ class ExperimentRunner:
             logger.info(f"  Small-world Sigma: {m.small_world_sigma}")
     
     def _log_continual_results(self):
-        """Log continual learning results."""
         if self.results.bdh_continual_results:
             r = self.results.bdh_continual_results
             logger.info(f"\nBDH Continual Learning:")
@@ -630,7 +555,6 @@ class ExperimentRunner:
             logger.info(f"  Avg Backward Transfer: {r.avg_backward_transfer:.4f}")
     
     def _log_long_context_results(self):
-        """Log long-context results."""
         if self.results.bdh_long_context_results:
             r = self.results.bdh_long_context_results
             logger.info(f"\nBDH Long-Context:")
@@ -648,7 +572,6 @@ class ExperimentRunner:
                 logger.info(f"  {task}: {accs}")
     
     def _save_results(self):
-        """Save all results."""
         results_dir = Path(self.config.paths.results_dir)
         results_dir.mkdir(parents=True, exist_ok=True)
         
@@ -657,7 +580,6 @@ class ExperimentRunner:
         
         self.results.save(str(results_path))
         
-        # Also log to experiment tracker
         self.experiment_tracker.log_experiment(
             experiment_name="full_pipeline",
             config=OmegaConf.create(self.results.config),
@@ -668,7 +590,6 @@ class ExperimentRunner:
 
 
 def create_experiment_runner(config: DictConfig) -> ExperimentRunner:
-    """Factory function to create ExperimentRunner from config."""
     exp_config = ExperimentConfig(
         bdh_config=config.model.bdh,
         transformer_config=config.model.transformer,
@@ -683,21 +604,17 @@ def create_experiment_runner(config: DictConfig) -> ExperimentRunner:
 
 
 def run_full_pipeline(config: DictConfig) -> FullExperimentResults:
-    """Convenience function to run the full pipeline."""
     runner = create_experiment_runner(config)
     return runner.run_all()
 
 
-# CLI entry point
 if __name__ == "__main__":
     import sys
     from omegaconf import OmegaConf
     
-    # Load config
     config_path = sys.argv[1] if len(sys.argv) > 1 else "configs/default.yaml"
     config = OmegaConf.load(config_path)
     
-    # Run
     results = run_full_pipeline(config)
     
     print("\nExperiment completed successfully!")

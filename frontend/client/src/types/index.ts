@@ -1,7 +1,3 @@
-// NeuroLens Shared Type Definitions
-// Matches the JSON contracts from results/ directory
-
-// ===== Structure Types =====
 export interface StructureCheckpoint {
   step: number;
   modularity: number;
@@ -72,7 +68,6 @@ export interface GraphConfig {
   aggregate_over_batch: boolean;
 }
 
-// ===== Continual Learning Types =====
 export interface ContinualLearningResult {
   task_a_before: number;
   task_a_after: number;
@@ -95,7 +90,6 @@ export interface ContinualLearningResult {
   avg_backward_transfer?: number;
 }
 
-// ===== Long-Context Reasoning Types =====
 export interface ReasoningResult {
   task_name: string;
   bdh_accuracy_mean: number;
@@ -110,7 +104,6 @@ export interface ReasoningResult {
   sample_details?: Record<string, Array<{ predicted: number; true: number; correct: boolean }>>;
 }
 
-// ===== Summary Types =====
 export interface SummaryResult {
   headline: string;
   structure_finding: { claim: string; tag: string };
@@ -118,7 +111,6 @@ export interface SummaryResult {
   reasoning_finding: { claim: string; tag: string };
 }
 
-// ===== Config Types =====
 export interface ModelConfig {
   bdh: {
     model_name: string;
@@ -161,12 +153,4 @@ export interface InstrumentationConfig {
     modularity_resolution: number;
     community_algorithm: string;
   };
-}
-
-// ===== Claim Tag Type =====
-export type ClaimTag = 'ESTABLISHED' | 'MEASURED' | 'EXPLORATORY' | 'PARTIALLY_SUPPORTED';
-
-export interface ClaimBadgeProps {
-  tag: ClaimTag;
-  className?: string;
 }

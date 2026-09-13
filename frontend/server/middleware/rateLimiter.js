@@ -1,17 +1,10 @@
-/**
- * Sliding window rate limiting middleware.
- * Protects server against request floods and rapid looping.
- */
-
 export function createRateLimiter({
-  windowMs = 10 * 1000,     // 10 seconds
-  maxRequests = 150,        // Max 150 requests per window (generous for dashboard, prevents flood)
-  cleanupIntervalMs = 60 * 1000 // Clean up old records every minute
+  windowMs = 10 * 1000,
+  maxRequests = 150,
+  cleanupIntervalMs = 60 * 1000
 } = {}) {
-  // Map of IP -> array of timestamps
   const requestRecords = new Map();
 
-  // Periodic cleanup of expired records to avoid memory leak
   const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [ip, timestamps] of requestRecords.entries()) {
@@ -24,7 +17,6 @@ export function createRateLimiter({
     }
   }, cleanupIntervalMs);
 
-  // Unref timer so it doesn't prevent clean process shutdown
   if (cleanupTimer.unref) {
     cleanupTimer.unref();
   }
@@ -34,7 +26,6 @@ export function createRateLimiter({
     const now = Date.now();
 
     const timestamps = requestRecords.get(ip) || [];
-    // Keep only timestamps within window
     const recent = timestamps.filter(t => now - t < windowMs);
 
     if (recent.length >= maxRequests) {

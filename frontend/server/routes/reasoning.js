@@ -7,7 +7,6 @@ export default function reasoningRoutes(resultsDir) {
   const reasoningDir = path.join(resultsDir, 'reasoning');
   const resultPath = path.join(reasoningDir, 'result.json');
 
-  // GET /api/reasoning - return long-context reasoning results
   router.get('/', async (req, res, next) => {
     try {
       const data = await fileCache.readJson(resultPath);
@@ -21,7 +20,6 @@ export default function reasoningRoutes(resultsDir) {
     }
   });
 
-  // GET /api/reasoning/comparison - return formatted comparison table
   router.get('/comparison', async (req, res, next) => {
     try {
       const data = await fileCache.readJson(resultPath);
@@ -29,7 +27,6 @@ export default function reasoningRoutes(resultsDir) {
         return res.status(404).json({ error: 'Reasoning results not found' });
       }
 
-      // Format for comparison table
       const comparison = {
         tasks: Object.keys(data.accuracies || {}).map(task => ({
           name: task,

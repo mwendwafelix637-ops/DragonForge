@@ -1,15 +1,3 @@
-"""
-Seeded, repeated experiment runs with aggregated statistics.
-
-A single training run tells you almost nothing when comparing two
-architectures: the difference you measure is a mixture of the effect you care
-about and the variance from weight initialisation and batch ordering. Any
-comparative claim needs several seeds and a spread reported alongside the mean.
-
-See docs/experimental-rigour.md for what the previous single-run results did
-and did not support.
-"""
-
 import logging
 import random
 import statistics
@@ -25,11 +13,6 @@ DEFAULT_SEEDS = (42, 123, 456)
 
 
 def set_all_seeds(seed: int, deterministic: bool = False) -> None:
-    """Seed every RNG a run touches.
-
-    Seeding only numpy leaves torch's weight initialisation and DataLoader
-    shuffling unseeded, which is most of the variance in a training run.
-    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -43,8 +26,6 @@ def set_all_seeds(seed: int, deterministic: bool = False) -> None:
 
 @dataclass(frozen=True)
 class Aggregate:
-    """Mean and spread of one metric across seeds."""
-
     metric: str
     values: List[float]
     mean: float
@@ -70,8 +51,6 @@ class Aggregate:
 
 
 def aggregate(metric: str, values: Sequence[float]) -> Aggregate:
-    """Mean and sample standard deviation. A single value has zero spread and
-    is reported with n=1 so nobody mistakes it for a replicated result."""
     numbers = [float(value) for value in values if value is not None]
     if not numbers:
         raise ValueError(f"No values to aggregate for {metric!r}")
@@ -88,7 +67,6 @@ def aggregate(metric: str, values: Sequence[float]) -> Aggregate:
 def aggregate_runs(
     runs: Sequence[Dict[str, Any]], metrics: Optional[Sequence[str]] = None
 ) -> Dict[str, Aggregate]:
-    """Aggregate every scalar metric shared by all runs."""
     if not runs:
         raise ValueError("No runs to aggregate")
 
@@ -141,14 +119,6 @@ def run_across_seeds(
     deterministic: bool = False,
     stop_on_failure: bool = False,
 ) -> SeededResults:
-    """Run an experiment once per seed and aggregate the results.
-
-    `run_once(seed)` must return a flat dict of metrics. Seeds are applied
-    before each call, so the function itself does not need to seed anything.
-    A run that raises is recorded in `failures` and excluded from the
-    aggregates rather than aborting the sweep, so one bad seed does not
-    discard the runs that did complete.
-    """
     seeds = list(seeds)
     if not seeds:
         raise ValueError("At least one seed is required")
@@ -182,12 +152,6 @@ def compare(
     results_b: SeededResults,
     metric: str,
 ) -> Dict[str, Any]:
-    """Compare one metric between two seeded sweeps.
-
-    Reports the difference against the pooled spread. This is a magnitude, not
-    a significance test: three seeds cannot support a p-value, and quoting one
-    would overstate what the data carry.
-    """
     if metric not in results_a.aggregates or metric not in results_b.aggregates:
         raise ValueError(f"{metric!r} was not measured in both sweeps")
 

@@ -6,7 +6,6 @@ export default function structureRoutes(resultsDir) {
   const router = express.Router();
   const structureDir = path.join(resultsDir, 'structure');
 
-  // GET /api/structure - return all checkpoints
   router.get('/', async (req, res, next) => {
     try {
       const checkpoints = await fileCache.readJsonDir(
@@ -19,7 +18,6 @@ export default function structureRoutes(resultsDir) {
     }
   });
 
-  // GET /api/structure/latest - return latest checkpoint
   router.get('/latest', async (req, res, next) => {
     try {
       const checkpoints = await fileCache.readJsonDir(
@@ -37,7 +35,6 @@ export default function structureRoutes(resultsDir) {
     }
   });
 
-  // GET /api/structure/comparison - return BDH vs Transformer comparison
   router.get('/comparison', async (req, res, next) => {
     try {
       const bdhPath = path.join(structureDir, 'bdh', 'bdh_structural_metrics.json');
@@ -54,7 +51,6 @@ export default function structureRoutes(resultsDir) {
     }
   });
 
-  // GET /api/structure/graph - return graph data for visualization
   router.get('/graph', async (req, res, next) => {
     try {
       const model = req.query.model === 'transformer' ? 'transformer' : 'bdh';

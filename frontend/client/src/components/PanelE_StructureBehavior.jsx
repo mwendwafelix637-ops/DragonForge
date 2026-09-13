@@ -4,7 +4,6 @@ import { ArrowRight, Link, Brain, Zap, GitBranch } from 'lucide-react';
 export function PanelE_StructureBehavior({ structureData, continualData }) {
   const hasData = structureData && continualData;
   
-  // Default values from design spec
   const modularity = structureData?.modularity || 0.61;
   const sparsity = structureData?.sparsity || 0.842;
   const forgetting = continualData?.forgetting || 0.08;

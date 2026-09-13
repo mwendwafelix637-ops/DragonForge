@@ -15,7 +15,6 @@
     @apply bg-neurolens-bg text-neurolens-textPrimary font-sans;
   }
   
-  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -35,7 +34,6 @@
 }
 
 @layer components {
-  /* Panel base style */
   .panel {
     @apply bg-neurolens-surface border border-neurolens-border rounded-panel p-panel shadow-panel transition-shadow duration-200;
   }
@@ -44,7 +42,6 @@
     @apply shadow-panel-hover;
   }
   
-  /* Panel header */
   .panel-header {
     @apply flex items-center justify-between mb-4 pb-3 border-b border-neurolens-border;
   }
@@ -57,7 +54,6 @@
     @apply text-small text-neurolens-textSecondary font-normal;
   }
   
-  /* Badge styles */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-badge text-tiny font-medium font-mono;
   }
@@ -74,7 +70,6 @@
     @apply bg-neurolens-badgeExploratory border border-neurolens-badgeExploratoryBorder border-dashed text-neurolens-textPrimary;
   }
   
-  /* Metric card */
   .metric-card {
     @apply flex flex-col gap-1;
   }
@@ -103,7 +98,6 @@
     @apply text-neurolens-textSecondary;
   }
   
-  /* Table styles */
   .data-table {
     @apply w-full border-collapse text-small;
   }
@@ -128,7 +122,6 @@
     @apply font-mono;
   }
   
-  /* Button styles */
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-panel text-small font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-neurolens-borderHover focus:ring-offset-2 focus:ring-offset-neurolens-bg;
   }
@@ -145,7 +138,6 @@
     @apply btn bg-transparent text-neurolens-textSecondary hover:text-neurolens-textPrimary;
   }
   
-  /* Toggle switch */
   .toggle {
     @apply relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer;
   }
@@ -170,7 +162,6 @@
     @apply transform translate-x-5 bg-neurolens-bg;
   }
   
-  /* Collapsible */
   .collapsible {
     @apply overflow-hidden transition-all duration-300 ease-out;
   }
@@ -179,7 +170,6 @@
     @apply overflow-hidden;
   }
   
-  /* Tooltip */
   .tooltip {
     @apply absolute z-50 px-3 py-2 text-tiny font-mono bg-neurolens-surface border border-neurolens-border rounded-panel shadow-panel pointer-events-none;
   }
@@ -209,7 +199,6 @@
   }
 }
 
-/* Recharts customization */
 .recharts-tooltip-wrapper {
   outline: none !important;
 }

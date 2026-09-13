@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -8,27 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // NeuroLens Monochromatic Palette
         neurolens: {
-          // Background
-          bg: '#09090B',           // Matte Black
-          // Surfaces
-          surface: '#18181B',       // Dark Charcoal
-          surfaceHover: '#1F1F23',  // Slightly lighter charcoal
-          // Borders
-          border: '#27272A',        // Thin subtle border
-          borderHover: '#3F3F46',   // Hover border
-          // Text
-          textPrimary: '#FAFAFA',   // Crisp Pure White
-          textSecondary: '#A1A1AA', // Muted Neutral Grey
-          textMuted: '#71717A',     // More muted grey
-          // Badge colors
-          badgeEstablished: '#FFFFFF', // White background
-          badgeEstablishedText: '#000000', // Black text
-          badgeMeasured: '#3F3F46', // Mid-grey background
-          badgeMeasuredText: '#FFFFFF', // White text
-          badgeExploratory: 'transparent', // Transparent
-          badgeExploratoryBorder: '#FAFAFA', // White dashed border
+          bg: '#09090B',
+          surface: '#18181B',
+          surfaceHover: '#1F1F23',
+          border: '#27272A',
+          borderHover: '#3F3F46',
+          textPrimary: '#FAFAFA',
+          textSecondary: '#A1A1AA',
+          textMuted: '#71717A',
+          badgeEstablished: '#FFFFFF',
+          badgeEstablishedText: '#000000',
+          badgeMeasured: '#3F3F46',
+          badgeMeasuredText: '#FFFFFF',
+          badgeExploratory: 'transparent',
+          badgeExploratoryBorder: '#FAFAFA',
         },
       },
       fontFamily: {
@@ -44,13 +37,13 @@ export default {
         'tiny': ['0.75rem', { lineHeight: '1.5' }],
       },
       spacing: {
-        'panel': '1.5rem',  // 24px - generous panel padding
-        'panel-sm': '1rem', // 16px
-        'panel-lg': '2rem', // 32px
+        'panel': '1.5rem',
+        'panel-sm': '1rem',
+        'panel-lg': '2rem',
       },
       borderRadius: {
-        'panel': '0.5rem', // 8px
-        'badge': '9999px', // Full pill
+        'panel': '0.5rem',
+        'badge': '9999px',
       },
       boxShadow: {
         'panel': '0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2)',

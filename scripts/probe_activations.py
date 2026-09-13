@@ -21,7 +21,6 @@ def make_repeated_input(config, seq_len=32):
 
 
 def make_structured_input(config, seq_len=32):
-    # Deterministic repeating pattern.
     tokens = torch.arange(seq_len) % config.vocab_size
     return tokens.unsqueeze(0)
 

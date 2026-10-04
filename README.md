@@ -1,4 +1,14 @@
-# NeuroLens
+# DragonForge
+
+DragonForge is being built as a secure, modular market-analysis, research, charting, and decision-support platform. It is not a broker or trading bot and contains no order execution.
+
+The current product foundation is in [platform_api](platform_api/README.md): a FastAPI service, PostgreSQL schema and migrations, owner bootstrap, authentication/2FA foundations, owner setup controls, and a React owner console. This is Phase 1 work, not a production-ready launch; public member registration and market-data integrations intentionally remain disabled/unconfigured.
+
+To run the platform API and client locally, follow the setup in [platform_api/README.md](platform_api/README.md).
+
+## Existing BDH research project
+
+The repository also retains its earlier NeuroLens research dashboard and BDH experiment code. Its results are research artifacts, not DragonForge financial-market analysis or live market data.
 
 **One-sentence claim:**  
 We instrument a real small BDH (Dragon Hatchling) model, measure its internal interaction structure, and connect those measurements to controlled experiments on continual learning and long-context reasoning.

@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dragonforge
+      POSTGRES_USER: dragonforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in platform_api/.env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dragonforge_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dragonforge -d dragonforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DRAGONFORGE_DATABASE_URL: postgresql+psycopg://dragonforge:${POSTGRES_PASSWORD}@db:5432/dragonforge
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dragonforge_db:

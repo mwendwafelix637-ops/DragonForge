@@ -6,7 +6,7 @@ Phase 1 foundation for the DragonForge market-analysis and decision-support plat
 
 Requirements: Docker Compose, Python 3.12+, Node.js 18+.
 
-1. From this directory, copy `.env.example` to `.env`. Set `POSTGRES_PASSWORD` to a random URL-safe value, generate `DRAGONFORGE_SESSION_SECRET` and the one-time `DRAGONFORGE_BOOTSTRAP_TOKEN` with `openssl rand -hex 32`, and generate `DRAGONFORGE_TOTP_ENCRYPTION_KEY` with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Do not commit `.env`.
+1. From this directory, copy `.env.example` to `.env`. Replace the matching password placeholders in both `POSTGRES_PASSWORD` and `DRAGONFORGE_DATABASE_URL` with the same random URL-safe value. Generate `DRAGONFORGE_SESSION_SECRET` and the one-time `DRAGONFORGE_BOOTSTRAP_TOKEN` with `openssl rand -hex 32`, and generate `DRAGONFORGE_TOTP_ENCRYPTION_KEY` with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Do not commit `.env`.
 2. Start PostgreSQL with `docker compose up -d db`.
 3. Create an environment and install the API: `python -m venv .venv`, `source .venv/bin/activate`, then `pip install -r requirements-dev.txt`.
 4. Apply database migrations from this directory: `alembic upgrade head`.
@@ -26,12 +26,14 @@ Set `DRAGONFORGE_DOMAIN` to change the working domain without rebuilding. Set `D
 - Owner-only configuration APIs and setup completion checks; publishing configuration does not enable member registration.
 - Owner-created individual admin accounts with explicit allowlisted permissions and a database-constrained maximum of five accounts.
 - Append-only-by-API audit event recording and honest safe/degraded health reporting.
+- Authenticated `/api/v1/markets/fx` endpoint and owner-console view for daily ECB reference rates across major US, UK, and Asia-Pacific currencies. Data is fetched from the ECB public SDMX API and cached for 15 minutes; values are reference benchmarks, not live executable quotes.
+- Authenticated `/api/v1/markets/macro` endpoint and owner-console view for annual World Bank inflation and real GDP growth observations across 12 selected economies. Data is fetched from the World Bank public API and cached for six hours; reporting years vary by indicator and country.
 
 ## Not implemented; do not treat as production-ready
 
 - Member signup, email verification, membership applications/review, and account activation. Public registration intentionally remains disabled, even after platform configuration is published.
 - Admin application-review actions, an owner/admin approval workflow for sensitive changes, or admin invitations/password reset delivery. The current admin screen shows only the administrator's assigned permission names.
 - Production-grade distributed rate limiting, email delivery, external secret-manager integration, database backup automation/restore drills, monitoring/alert delivery, or disaster recovery.
-- Market-data providers, financial-market analysis, charting, risk analysis, subscriptions/payments, broker connections, paper trading, backtesting, AI, and user-facing audit retention/immutability controls.
+- Licensed real-time market-data providers, broad financial-market analysis, charting, risk analysis, subscriptions/payments, broker connections, paper trading, backtesting, AI, and user-facing audit retention/immutability controls.
 
 Never expose this API publicly until those required launch controls and production infrastructure are implemented and independently reviewed. `PUBLISH PLATFORM` publishes the configured owner settings only; it does not turn on public registration. The platform must not be described as production-ready on the basis of this Phase 1 foundation alone.

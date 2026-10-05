@@ -1,49 +1,23 @@
-# Running NeuroLens Dashboard & API Server
+# DragonForge frontend
 
-This folder contains the complete monochromatic research dashboard frontend and backend.
+`client/` is the active React/Vite owner console. It calls the DragonForge Platform API at `/api/v1`; the Vite development proxy forwards those requests to `http://localhost:8000`.
+After owner sign-in, **FX reference rates** shows official daily ECB reference values for selected major currencies. These are not live trading quotes; details and coverage limits are shown in the screen.
+The **Global macro indicators** page shows annual World Bank inflation and real GDP growth observations for selected economies; it is historical data, not a real-time signal.
 
-## Structure
-
-- `server/` - Node/Express backend that reads the experimental JSON contracts from the root `results/` folder and exposes them via a REST API.
-- `client/` - React (Vite) + Tailwind CSS minimalistic monochromatic dark-mode client dashboard.
-
-## Setup & Running
-
-### Prerequisites
-
-Ensure you have Node.js (>= 18) installed.
-
-### 1. Start the Backend API Server
-
-Navigate to the `server` directory, install dependencies, and run:
+For setup, database migrations, and local startup instructions, follow [the Platform API guide](../platform_api/README.md). The client can also be started from the repository root with:
 
 ```bash
-cd frontend/server
-npm install
-npm run dev
+npm --prefix frontend/client ci
+npm --prefix frontend/client run dev -- --host 0.0.0.0
 ```
 
-The server will start at `http://localhost:3001` and serve routes like `/api/structure/latest`, `/api/continual`, `/api/reasoning`, and `/api/summary`.
+To point the development client at a different API, set `DRAGONFORGE_API_PROXY_TARGET` before starting Vite.
 
-### 2. Start the Frontend Client
-
-Navigate to the `client` directory, install dependencies, and run:
+`server/` is a separate legacy NeuroLens results API that reads the research JSON files in the root `results/` directory. It is not used by the active DragonForge owner console. To run it independently:
 
 ```bash
-cd frontend/client
-npm install
-npm run dev
+npm --prefix frontend/server ci
+npm --prefix frontend/server run dev
 ```
 
-The React app will start at `http://localhost:5173` with proxy configuration forwarding `/api` calls directly to the Express server.
-
-## Features
-
-- **Top Navigation & Control Header**: Displays global metadata, instrumented model checkpoint name, and seed value alongside data export functionality.
-- **Panel A: Network Topology Inspector**: Beautiful 2D force-directed node-link graph with toggleable control null model.
-- **Panel B: Training Evolution Timeline**: Comparison of structural modularity, activation sparsity, and clustering metrics.
-- **Panel C: Long-Context Reasoning Benchmark**: Accurate comparisons between BDH Small and parameter-matched Transformers at up to 32k contexts.
-- **Panel D: Sequential Continual Learning Matrix**: Flow-based illustration of forgetting and retention comparison.
-- **Panel E: Structure ↔ Behavior Bridge**: Highly clinical correlation schematic tracing modular structural layouts to behavioral advantages.
-- **Evidence Badges**: Solid, precise, monochromatic badges (`[ESTABLISHED]`, `[MEASURED]`, `[EXPLORATORY]`) applied across all research claim panels.
-- **Scale Horizon Protocol collapsing banner**: Elegant bottom disclosure outlining scaling theories for 100M+ scales.
+It listens on port 3001 by default and exposes legacy research routes under `/api/`. Those routes are not DragonForge market data or live trading functionality.

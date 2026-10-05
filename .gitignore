@@ -63,7 +63,7 @@ logs/
 *.bin
 *.safetensors
 checkpoints/
-models/
+/models/
 
 # Data
 data/*.csv

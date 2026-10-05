@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .database import SessionLocal
+from .market_data import MarketDataUnavailable, fetch_ecb_reference_rates
+from .macro_data import MacroDataUnavailable, fetch_macro_indicators
 from .models import AdminAccount, AuditLog, Device, LoginAttempt, Permission, PlatformConfiguration, Role, User, UserSession
 from .security import (
     create_totp_secret, decrypt_totp_secret, encrypt_totp_secret, generate_recovery_codes,
@@ -198,12 +200,6 @@ def setup_section_complete(section: str, value) -> bool:
         return False
     return True
 
-    if not settings.session_secret or len(settings.session_secret) < 32:
-        raise RuntimeError("Set DRAGONFORGE_SESSION_SECRET to a random value of at least 32 characters")
-    if not settings.totp_encryption_key:
-        raise RuntimeError("Set DRAGONFORGE_TOTP_ENCRYPTION_KEY to a Fernet key")
-
-
 @app.get("/api/v1/status")
 def status(db: Session = Depends(get_db)):
     owner_exists = db.scalar(select(User.id).where(User.account_type == "owner")) is not None
@@ -211,7 +207,7 @@ def status(db: Session = Depends(get_db)):
     return {"service": "DragonForge Platform API", "state": "ready", "owner_registered": owner_exists,
             "published": bool(config and config.published_at), "registration_enabled": False,
             "registration_reason": "Member verification and application review are not implemented yet.",
-            "domain": settings.domain, "market_data": "NOT CONFIGURED"}
+            "domain": settings.domain, "market_data": "ECB PUBLIC REFERENCE RATES (ON DEMAND)"}
 
 
 @app.post("/api/v1/auth/bootstrap", status_code=201)
@@ -530,6 +526,22 @@ def health(db: Session = Depends(get_db)):
     except Exception:
         database = "unavailable"
     state = "safe_mode" if database != "available" else "degraded"
-    return {"status": state, "database": database, "market_data": "NOT CONFIGURED",
+    return {"status": state, "database": database, "market_data": "ECB PUBLIC REFERENCE RATES (ON DEMAND)",
             "analysis_engine": "NOT CONFIGURED", "risk_engine": "NOT CONFIGURED",
             "notifications": "NOT CONFIGURED", "backups": "NOT CONFIGURED"}
+
+
+@app.get("/api/v1/markets/fx")
+def market_fx(_: User = Depends(current_user)):
+    try:
+        return fetch_ecb_reference_rates()
+    except MarketDataUnavailable as exc:
+        raise HTTPException(status_code=502, detail="Public ECB reference-rate data is temporarily unavailable") from exc
+
+
+@app.get("/api/v1/markets/macro")
+def market_macro(_: User = Depends(current_user)):
+    try:
+        return fetch_macro_indicators()
+    except MacroDataUnavailable as exc:
+        raise HTTPException(status_code=502, detail="Public World Bank macro data is temporarily unavailable") from exc

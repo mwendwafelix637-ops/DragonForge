@@ -82,7 +82,9 @@ def test_owner_setup_values_persist_and_registration_stays_closed(client):
     assert setup["sections"]["platform"]["complete"] is True
     assert setup["sections"]["payments"]["complete"] is False
     assert setup["registration_enabled"] is False
-    assert client.get("/api/v1/status").json()["registration_enabled"] is False
+    status = client.get("/api/v1/status").json()
+    assert status["registration_enabled"] is False
+    assert status["market_data"] == "ECB PUBLIC REFERENCE RATES (ON DEMAND)"
 
 
 def test_totp_enrollment_and_recovery_codes_are_one_use(client):
@@ -147,3 +149,76 @@ def test_admin_passwords_are_stored_only_as_hashes(client):
         assert db.scalar(select(AdminAccount).where(AdminAccount.user_id == admin.id)).slot == 1
     finally:
         db.close()
+
+
+def test_fx_reference_rates_require_authentication(client):
+    response = client.get("/api/v1/markets/fx")
+
+    assert response.status_code == 401
+
+
+def test_authenticated_fx_endpoint_returns_source_and_reference_data(client, monkeypatch):
+    from app import main
+
+    payload = {
+        "source": "European Central Bank (ECB)",
+        "source_url": "https://data.ecb.europa.eu/data/datasets/EXR",
+        "series": "ECB daily reference exchange rates, currencies per EUR",
+        "frequency": "Daily business-day observations",
+        "fetched_at": "2026-10-05T12:00:00+00:00",
+        "cache_seconds": 900,
+        "rates": [{"currency": "USD", "units_per_eur": 1.17}],
+        "disclaimer": "Reference rates, not executable prices.",
+    }
+    monkeypatch.setattr(main, "fetch_ecb_reference_rates", lambda: payload)
+    bootstrap_owner(client)
+
+    response = client.get("/api/v1/markets/fx")
+
+    assert response.status_code == 200
+    assert response.json() == payload
+
+
+def test_fx_endpoint_reports_upstream_failure_without_fabricating_data(client, monkeypatch):
+    from app import main
+    from app.market_data import MarketDataUnavailable
+
+    def unavailable():
+        raise MarketDataUnavailable("upstream unavailable")
+
+    monkeypatch.setattr(main, "fetch_ecb_reference_rates", unavailable)
+    bootstrap_owner(client)
+
+    response = client.get("/api/v1/markets/fx")
+
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": "Public ECB reference-rate data is temporarily unavailable"
+    }
+
+
+def test_macro_indicators_require_authentication(client):
+    assert client.get("/api/v1/markets/macro").status_code == 401
+
+
+def test_authenticated_macro_endpoint_returns_public_data(client, monkeypatch):
+    from app import main
+
+    payload = {
+        "source": "World Bank Open Data",
+        "source_url": "https://data.worldbank.org/",
+        "api_url": "https://api.worldbank.org/v2/country/all/indicator",
+        "frequency": "Annual observations",
+        "fetched_at": "2026-10-05T12:00:00+00:00",
+        "cache_seconds": 21600,
+        "indicators": [["FP.CPI.TOTL.ZG", "Inflation"]],
+        "countries": [{"country_code": "US", "country": "United States", "indicators": []}],
+        "disclaimer": "Annual historical statistics.",
+    }
+    monkeypatch.setattr(main, "fetch_macro_indicators", lambda: payload)
+    bootstrap_owner(client)
+
+    response = client.get("/api/v1/markets/macro")
+
+    assert response.status_code == 200
+    assert response.json() == payload

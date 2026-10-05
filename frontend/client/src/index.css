@@ -195,6 +195,30 @@ button:disabled { opacity: .48; cursor: not-allowed; }
 .health-grid { margin-top: 19px; }
 .unconfigured-note { margin-top: 19px; background: #fff5e9; color: #95632c; }
 .unconfigured-note span { color: #8b775f; }
+.market-source { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 18px 0 12px; padding: 13px 15px; border: 1px solid var(--line); background: white; }
+.market-source > div { display: flex; flex-direction: column; gap: 5px; }
+.market-source strong { color: #354f3a; font-size: 11px; }
+.market-source span, .market-source a { color: var(--muted); font-size: 10px; }
+.market-source a { color: #426d4b; }
+.market-rate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.market-rate-card { min-width: 0; min-height: 140px; padding: 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .82); }
+.market-rate-card > div { width: 100%; display: flex; justify-content: space-between; gap: 8px; }
+.market-rate-card > div span { color: #365640; font: 600 11px var(--mono); }
+.market-rate-card > div strong { color: var(--muted); font-size: 9px; font-weight: 500; text-align: right; }
+.market-rate-card > b { color: var(--ink); font: 500 23px var(--mono); }
+.market-rate-card > small, .market-disclaimer { color: var(--muted); font-size: 9px; }
+.market-change { margin-top: auto; color: #7b857d; font: 9px var(--mono); }
+.market-positive { color: #437454; }
+.market-negative { color: #a44b43; }
+.market-disclaimer { margin: 14px 0; line-height: 1.6; }
+.macro-country-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.macro-country-card { min-width: 0; padding: 13px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .82); }
+.macro-country-card h2 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 11px; color: #354f3a; font-size: 11px; font-weight: 600; }
+.macro-country-card h2 span { color: #8a948d; font: 9px var(--mono); }
+.macro-indicator { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 8px; padding: 8px 0; border-top: 1px solid #edf0ec; }
+.macro-indicator > span { color: #657068; font-size: 9px; }
+.macro-indicator > strong { color: var(--ink); font: 500 14px var(--mono); }
+.macro-indicator > small { grid-column: 1 / -1; color: #8a948d; font: 8px var(--mono); }
 .inline-alert, .inline-success { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 14px; font-size: 10px; }
 .inline-alert { background: #fff1ec; color: #984a3c; }
 .inline-success { background: #edf5e8; color: #416c49; }
@@ -286,6 +310,9 @@ button:disabled { opacity: .48; cursor: not-allowed; }
   .risk-banner { padding: 11px; }
   .risk-banner p { font-size: 9px; }
   .service-grid { grid-template-columns: 1fr; }
+  .market-rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .macro-country-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .market-source { align-items: flex-start; flex-direction: column; }
   .service-row { min-height: 60px; }
   .checklist-grid { grid-template-columns: 1fr; }
   .checklist-item:nth-child(odd) { border-right: 0; }

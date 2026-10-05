@@ -25,6 +25,8 @@ const SETUP = [
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Owner dashboard', icon: LayoutDashboard },
+  { id: 'macro', label: 'Global macro indicators', icon: Activity },
+  { id: 'markets', label: 'FX reference rates', icon: Globe2 },
   { id: 'setup', label: 'Platform setup', icon: Settings2 },
   { id: 'admins', label: 'Admins', icon: Users },
   { id: 'security', label: 'Security & sessions', icon: ShieldCheck },
@@ -33,7 +35,7 @@ const NAV_ITEMS = [
 ];
 
 const LATER_ITEMS = [
-  { label: 'Markets', icon: Globe2 }, { label: 'Opportunity radar', icon: Radio },
+  { label: 'Opportunity radar', icon: Radio },
   { label: 'Charts', icon: Activity }, { label: 'Strategies', icon: Settings2 },
   { label: 'Research', icon: BookOpen }, { label: 'Backtesting', icon: ClipboardList },
   { label: 'Paper trading', icon: LayoutDashboard }, { label: 'Journal', icon: BookOpen },
@@ -88,6 +90,12 @@ export default function App() {
   const [admins, setAdmins] = useState([]);
   const [adminAccess, setAdminAccess] = useState(null);
   const [adminForm, setAdminForm] = useState({ email: '', display_name: '', password: '', permissions: ['users:support'] });
+  const [fxData, setFxData] = useState(null);
+  const [fxLoading, setFxLoading] = useState(false);
+  const [fxError, setFxError] = useState('');
+  const [macroData, setMacroData] = useState(null);
+  const [macroLoading, setMacroLoading] = useState(false);
+  const [macroError, setMacroError] = useState('');
 
   async function refreshStatus() {
     const data = await api('/status');
@@ -130,6 +138,54 @@ export default function App() {
     initialize();
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (section !== 'markets') return undefined;
+    let cancelled = false;
+    setFxLoading(true);
+    setFxError('');
+    api('/markets/fx')
+      .then(data => { if (!cancelled) setFxData(data); })
+      .catch(err => { if (!cancelled) setFxError(err.message); })
+      .finally(() => { if (!cancelled) setFxLoading(false); });
+    return () => { cancelled = true; };
+  }, [section]);
+
+  useEffect(() => {
+    if (section !== 'macro') return undefined;
+    let cancelled = false;
+    setMacroLoading(true);
+    setMacroError('');
+    api('/markets/macro')
+      .then(data => { if (!cancelled) setMacroData(data); })
+      .catch(err => { if (!cancelled) setMacroError(err.message); })
+      .finally(() => { if (!cancelled) setMacroLoading(false); });
+    return () => { cancelled = true; };
+  }, [section]);
+
+  async function refreshFxData() {
+    setFxLoading(true);
+    setFxError('');
+    try {
+      setFxData(await api('/markets/fx'));
+    } catch (err) {
+      setFxError(err.message);
+    } finally {
+      setFxLoading(false);
+    }
+  }
+
+  async function refreshMacroData() {
+    setMacroLoading(true);
+    setMacroError('');
+    try {
+      setMacroData(await api('/markets/macro'));
+    } catch (err) {
+      setMacroError(err.message);
+    } finally {
+      setMacroLoading(false);
+    }
+  }
 
   async function submitAuth(event) {
     event.preventDefault();
@@ -242,7 +298,7 @@ export default function App() {
   const systemServices = [
     { name: 'Platform API', value: 'AVAILABLE', state: 'healthy', icon: Activity },
     { name: 'PostgreSQL', value: health?.database?.toUpperCase() || 'CHECKING', state: health?.database === 'available' ? 'healthy' : 'warning', icon: Database },
-    { name: 'Market data', value: 'NOT CONFIGURED', state: 'neutral', icon: Radio },
+    { name: 'ECB reference data', value: 'DAILY · ON DEMAND', state: 'healthy', icon: Radio },
     { name: 'Analysis engine', value: 'NOT CONFIGURED', state: 'neutral', icon: Activity },
     { name: 'Risk engine', value: 'NOT CONFIGURED', state: 'neutral', icon: Shield },
     { name: 'Backups', value: 'NOT CONFIGURED', state: 'neutral', icon: Database },
@@ -268,11 +324,51 @@ export default function App() {
       </aside>
 
       <div className="main-column">
-        <header className="topbar"><div className="topbar-left"><IconButton className="mobile-menu" aria-label="Open menu" onClick={() => setMobileNav(true)}><Menu /></IconButton><div className="breadcrumb"><span>DragonForge</span><ChevronRight /><strong>{selectedNav?.label || 'Owner dashboard'}</strong></div></div><div className="topbar-right"><div className="data-state"><span className="state-dot" /> LIVE DATA UNAVAILABLE</div><button className="topbar-avatar" aria-label="Owner account" title={user.email}>{user.display_name.slice(0, 1).toUpperCase()}</button></div></header>
+        <header className="topbar"><div className="topbar-left"><IconButton className="mobile-menu" aria-label="Open menu" onClick={() => setMobileNav(true)}><Menu /></IconButton><div className="breadcrumb"><span>DragonForge</span><ChevronRight /><strong>{selectedNav?.label || 'Owner dashboard'}</strong></div></div><div className="topbar-right"><div className="data-state"><span className="state-dot" /> ECB DAILY REFERENCE DATA</div><button className="topbar-avatar" aria-label="Owner account" title={user.email}>{user.display_name.slice(0, 1).toUpperCase()}</button></div></header>
 
         <main className="page-content">
           {error && <div className="inline-alert" role="alert"><AlertTriangle />{error}<button onClick={() => setError('')} aria-label="Dismiss"><X /></button></div>}
           {notice && <div className="inline-success" role="status"><Check />{notice}<button onClick={() => setNotice('')} aria-label="Dismiss"><X /></button></div>}
+          {section === 'macro' && <>
+            <div className="page-heading"><div><span className="eyebrow">PUBLIC DATA / GLOBAL ECONOMY</span><h1>Global macro indicators</h1><p>Latest available annual inflation and real GDP growth observations for selected major economies.</p></div><button className="button-secondary" onClick={refreshMacroData} disabled={macroLoading}><RefreshCw />{macroLoading ? 'Refreshing' : 'Refresh indicators'}</button></div>
+            <div className="risk-banner"><AlertTriangle /><p>Annual indicators are historical statistics, not real-time market data, forecasts, or investment recommendations. The latest reported year can differ by country and indicator.</p></div>
+            {macroError && <div className="inline-alert" role="alert"><AlertTriangle />{macroError}<button onClick={() => setMacroError('')} aria-label="Dismiss"><X /></button></div>}
+            {macroLoading && !macroData && <div className="empty-state" role="status">Loading official World Bank observations…</div>}
+            {macroData && <>
+              <div className="market-source"><div><strong>{macroData.source}</strong><span>{macroData.frequency} · Retrieved {new Date(macroData.fetched_at).toLocaleString()}</span></div><a href={macroData.source_url} target="_blank" rel="noreferrer">Source methodology</a></div>
+              <section className="macro-country-grid" aria-label="Annual macroeconomic indicators">
+                {macroData.countries.map(country => <article className="macro-country-card" key={country.country_code}>
+                  <h2>{country.country}<span>{country.country_code}</span></h2>
+                  {country.indicators.map(indicator => <div className="macro-indicator" key={indicator.id}>
+                    <span>{indicator.name}</span>
+                    <strong>{Number(indicator.value).toFixed(1)}%</strong>
+                    <small>{indicator.year}</small>
+                  </div>)}
+                </article>)}
+              </section>
+              <p className="market-disclaimer">{macroData.disclaimer}</p>
+            </>}
+          </>}
+          {section === 'markets' && <>
+            <div className="page-heading"><div><span className="eyebrow">MARKET DATA / FOREIGN EXCHANGE</span><h1>FX reference rates</h1><p>Official daily reference observations for major US, UK, and Asia-Pacific currencies.</p></div><button className="button-secondary" onClick={refreshFxData} disabled={fxLoading}><RefreshCw />{fxLoading ? 'Refreshing' : 'Refresh rates'}</button></div>
+            <div className="risk-banner"><AlertTriangle /><p>ECB reference rates are daily benchmarks, not live trading quotes, and may differ from executable market prices. DragonForge does not connect to bank systems, execute trades, or provide investment advice.</p></div>
+            {fxError && <div className="inline-alert" role="alert"><AlertTriangle />{fxError}<button onClick={() => setFxError('')} aria-label="Dismiss"><X /></button></div>}
+            {fxLoading && !fxData && <div className="empty-state" role="status">Loading official ECB observations…</div>}
+            {fxData && <>
+              <div className="market-source"><div><strong>{fxData.source}</strong><span>{fxData.series} · Updated {new Date(fxData.fetched_at).toLocaleString()}</span></div><a href={fxData.source_url} target="_blank" rel="noreferrer">Source methodology</a></div>
+              <section className="market-rate-grid" aria-label="ECB exchange rates">
+                {fxData.rates.map(rate => <article className="market-rate-card" key={rate.currency}>
+                  <div><span>{rate.currency}</span><strong>{rate.name}</strong></div>
+                  <b>{Number(rate.units_per_eur).toLocaleString(undefined, { maximumSignificantDigits: 8 })}</b>
+                  <small>per 1 EUR · as of {rate.observation_date}</small>
+                  <span className={rate.change_pct == null ? 'market-change' : rate.change_pct >= 0 ? 'market-change market-positive' : 'market-change market-negative'}>
+                    {rate.change_pct == null ? 'Previous observation unavailable' : `${rate.change_pct >= 0 ? '+' : ''}${rate.change_pct.toFixed(3)}% vs ${rate.previous_observation_date}`}
+                  </span>
+                </article>)}
+              </section>
+              <p className="market-disclaimer">{fxData.disclaimer}</p>
+            </>}
+          </>}
           {section === 'overview' && <>
             <div className="page-heading"><div><span className="eyebrow">OWNER CONSOLE / OVERVIEW</span><h1>Platform foundation</h1><p>Identity, security, and launch readiness for DragonForge.</p></div><button className="button-secondary" onClick={() => loadOwnerData().catch(err => setError(err.message))}><RefreshCw /> Refresh status</button></div>
             <div className="risk-banner"><AlertTriangle /><p>{RISK_NOTICE}</p></div>
